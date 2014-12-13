@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# CGI to convert image found in Paul's image directory to cddb web image 
+# CGI to convert image file found in a separate directory to cddb web image 
 
 use strict ;
 use CGI ;
@@ -46,7 +46,6 @@ $image_out_favicon =~ s/\.png$/_favicon.png/ ;
 #$num_images = $image->Read($image_in)  ;
 $image->Resize(geometry=>'16x16^') ;
 $image->Write($image_out_favicon)  ;
-
 
 undef $image ;
 
