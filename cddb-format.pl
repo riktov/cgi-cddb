@@ -6,6 +6,8 @@
 
 #use lib "$ENV{HOME}/lib/perl5" ;
 
+#use lib "/opt/local/lib/perl5/site_perl/5.16.3" ;
+
 use strict ;
 use utf8 ;
 use URI::Encode ;
@@ -14,7 +16,7 @@ use MyUtil ;
 use vars qw($opt_h $opt_t $opt_a) ;
 use Getopt::Std ;
 
-use CGI ;
+use CGI '-utf8';
 
 #Declarations
 sub read_cddb_stdin ;
@@ -30,12 +32,15 @@ sub printbr ;
 
 #http://localhost/~paul/music/Bill_Evans/Yesterday_I_Heard_The_Rain/03%20-%20My_Romance.mp3
 
-##GLOBALS
+##DEFAULT GLOBALS
 my $is_cgi = 0 ;
 my $cddb_dir = '/home/r/riktov/.cddb/' ;
+my $rcfilepath = '.cddbrc' ;
+
 my $image_dir = "../cddb_images/" ;
-my $album_covers_dir="/home/paul/Pictures/external/album_covers/" ;
+my $album_covers_dir="../album_covers/" ;
 my @mp3_dirs = ('../ext_music/', '../music/') ;
+
 
 #options
 my $opt_html = 1 ;
@@ -44,6 +49,17 @@ my $opt_html = 1 ;
 ################
 ## MAIN
 #main starts here
+
+if (open RCFILE, $rcfilepath) {
+	my @rc = <RCFILE> ;
+	
+	foreach my $line (@rc) {
+		if ($line =~ /cddb_dir=(.+)/) {
+			$cddb_dir=$1 ;
+		}
+	}
+	close RCFILE ;
+}
 
 
 # command-line options
@@ -61,7 +77,7 @@ my @names = $cgi->param ;
 $is_cgi = 1 if @names ; 
 
 #my $infile = $cgi->param('keywords') ;
-my $infile = $cgi->param('cddb') ;
+my $infile = $cddb_dir . "/" .  $cgi->param('cddb') ;
 
 #for command-line
 if (!$infile) {
@@ -69,15 +85,16 @@ if (!$infile) {
 	$infile = $ARGV[0] ;
 }
 
-$infile or die "Can't get infile!\n" ;
-#print "INFILE: $infile\n" ;
 
 #globals
 my ($d_artist, $d_title, $num, $num_tracks) ;
 my $is_compilation = 0 ;
 my (@tr_title, @tr_artist, @tr_composer) ;
 
-die "Input file required\n" unless $infile ;
+$infile or die "Can't get infile!\n" ;
+#print "INFILE: $infile\n" ;
+#die "Input file required\n" unless $infile ;
+
 if (-l $infile) {
 	$infile = readlink($infile) ;
 	}
@@ -87,21 +104,29 @@ read_cddb($infile) ;
 
 #output
 if ($is_cgi) {
-	print $cgi->header ;
+	print $cgi->header(
+		-type    => 'text/html',
+        -charset => 'utf-8');
 }
 
 my $cddb_id = $infile ;
 $cddb_id =~ s|.+/|| ;
 
 
-if($opt_html) {
+if($opt_html) {                   
 	print $cgi->start_html(
 	    -title=>"$d_title - $d_artist", 
 	    -style=>'../css/cddb.css',
 	    -head=> $cgi->Link({
-		-href=>"../cddb_images/${cddb_id}_favicon.png",
-		-type=>'image/png',
-		-rel=>'icon'})) ;
+			-href=>"../cddb_images/favicon/${cddb_id}_favicon.png",
+			-type=>'image/png',
+			-rel=>'icon',
+			}),
+		-script=>{
+			-type=>'text/javascript',
+			-src=>'../js/dragimage.js'
+			}
+		) ;
 }
 else {
 	print "# $infile\n" ; 
@@ -113,6 +138,7 @@ print_cover_image() if $opt_html ;
 print_debug_window() ;
 print_footer();
 
+#end of main()
 
 sub read_cddb
 	{
@@ -164,26 +190,40 @@ sub read_cddb
 
 sub print_artist_and_title()
 {
-	my ($d_artist_fmt, $d_title_fmt, $d_artist_link) ;
+	my ($d_artist_fmt, $d_title_fmt, $d_artist_link, $d_image_thumb) ;
+	$d_artist_link = "" ;
+	
 	if ($opt_html) {
 		if (!$is_compilation) {
 			$d_artist_link = tokenize_anchors_artist($d_artist) ;
 		}
 		$d_artist_fmt = "<h2>$d_artist_link</h2>\n" ;
+
+		$d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
+
 		$d_title_fmt  = "<h1>$d_title</h1>" ;
 		}
 	else {
 		$d_artist_fmt = "#$d_artist - " ;
 		$d_title_fmt  = $d_title ;
 		}
-	print "$d_artist_fmt$d_title_fmt\n" ;
+		
+
+	print '<div id="disc_title">' if $opt_html ;
+
+	print "$d_artist_fmt" ;
+	print "<div><img src=\"${d_image_thumb}\" />" if $opt_html;
+	print "$d_title_fmt\n" ;
+	
+	print '</div></div>' if $opt_html ;
+
 }
 
 
 sub print_tracks()
 {
     if($opt_html) {
-	print '<div class="TrackListing">' ;
+ 	print '<div id="track_listing">' ;
 	print '<ol>'  ;
     }
 
@@ -245,23 +285,30 @@ sub print_tracks()
     }
 }
 
+sub mp3_directory {
+    my($artist, $album) = @_ ;
+
+}
+
+#return the first valid path for a mp3 file in the mp3 directories
 sub find_mp3 {
     my($artist, $album, $tracknum, $title) = @_ ;
 
     #return 1 ;
     #mogrify the strings
 #    my $tracknum_str = sprintf("%02d", $tracknum + 1) ;
-    my $uri = URI::Encode->new( { encode_reserved => 0 } );
+#    my $uri = URI::Encode->new( { encode_reserved => 0 } );
 
     $album =~ s/[ '\?\!]/_/g ;
     $artist =~ s/[ '\?\!]/_/g ;
     $title =~ s/[ '\?\!\/]/_/g ;
 
     foreach my $dir (@mp3_dirs) {
-	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ; 
+	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
 	$mp3_path = $mp3_path . '.mp3' ;
 
-	#$mp3_path = $uri->encode($mp3_path) ;
+#	$mp3_path = $uri->encode($mp3_path) ;
+	#print "$mp3_path<br/>" ;
 
 #	print "<a href=\"$mp3_path\">" . $mp3_path. "</a>" ;
 
@@ -273,16 +320,16 @@ sub find_mp3 {
     return '' ;
 }
 
-#return the path of the unprocessed album cover image
+#return the path of the unprocessed album cover image, or '' if none
 sub cover_source_image_path {
     my($artist, $album) = @_ ;
 
     my $path = "${artist}-${album}.jpg" ;
-    $path =~ tr|[ '\&]|_| ;#replace illegal path characters
+    $path =~ tr|[ '\&+]|_| ;#replace illegal path characters
 
     #use utf8?
-    $path =~ tr/[ô]/[o]/ ;#replace extended characters, not working with multiple characters
-    $path =~ tr/[ãá]/[a]/ ;#replace extended characters
+    #$path =~ tr/[ô]/[o]/ ;#replace extended characters, not working with multiple characters
+    #$path =~ tr/[ãá]/[a]/ ;#replace extended characters
     $path = $album_covers_dir . $path ;
     return $path ;
 }
@@ -294,19 +341,26 @@ sub print_cover_image() {
 
     #print $imgfile . '</br>' ;
 
-    if(-f $imgfile) {
-	print '<img src="' . $imgfile . '">' ;
+    print '<div id="album_cover">' ;
+    
+    if(-f $imgfile) {		
+		print '<img src="' . $imgfile . '">' ;
     } else {
-	my $fixed_name = cover_source_image_path($d_artist, $d_title) ;
-
-	my $cover_convert_link = '' ;
-
-	if(-f $fixed_name) {
-	    #print $fixed_name ;
-	    $cover_convert_link = "<a href=cddb-convert-image.pl?source=$fixed_name&cddb=$infile>Convert Cover Image</a>" ;
-	    print $cover_convert_link ;
-	} 
+		my $cover_source_image_path = cover_source_image_path($d_artist, $d_title) ;
+	
+		my $cover_convert_link = '' ;
+	
+		if(-f $cover_source_image_path) {
+			#print $fixed_name ;
+			$cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path}&cddb=${infile}>Convert Cover Image</a>" ;
+			print $cover_convert_link ;
+		} else {
+			print '<input type="file">Input File</input>' ;
+			print "Copy the image file to ${cover_source_image_path}" ;
+		}
     }
+    
+    print '</div>' ;
     print '<br style="clear:both">' ;
 }
 
@@ -320,7 +374,6 @@ sub print_debug_window {
     
     print '<div class="Debug"><code>' ;
 
-    printbr ($infile) ;
     printbr ("cddb-format.pl -t $infile") ;
     printbr ("kate $infile &") ;
     printbr ($cover_path) ;
@@ -352,6 +405,7 @@ Convert to utf-8 from <select name=from_encoding>
 <ul>
 	<li><a href="cddb-tartist.pl?cddb_path=$infile">Convert to TARTIST format</a>
 	<li><a href="cddb-collection?$infile">Add to collection</a>
+	<li><a href="cddb-query.pl">Return to Query</a>
 </ul>
 
 </body>

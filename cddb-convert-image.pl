@@ -5,8 +5,12 @@ use strict ;
 use CGI ;
 use Image::Magick ;
 
+use Cddb ;
+
 #globals
 my $cddb_image_dir = "../cddb_images/" ;
+#my $cddb_image_dir_thumb   = "${cddb_image_dir}thumbs/" ;
+#my $cddb_image_dir_favicon = "${cddb_image_dir}favicon/" ;
 my $opt_cgi = 1 ;
 
 my $cgi = new CGI ;
@@ -23,37 +27,44 @@ my $cddb_id = $cddb_path ;
 $cddb_id =~ s|.+/|| ;
 
 my $image_in = $cover_path ;
-my $image_out = $cddb_image_dir . $cddb_id . '.png' ;
+my $image_out ;
 
 #convert image
 my $image = Image::Magick->new ;
 my $num_images ;
+my $result ;
 
+#main image
 $num_images = $image->Read($image_in)  ;
+print STDERR "The number of images read is: $num_images\n";
+
+$image_out = $cddb_image_dir . $cddb_id . '.png' ;
+print STDERR "The main file is: $image_out\n";
 $image->Resize(geometry=>'300x300^') ;
-$image->Write($image_out)  ;
+$result = $image->Write($image_out)  ;
+print STDERR "The result of Write is: $result\n" ;
 
-my $image_out_thumb = $image_out ;
-$image_out_thumb =~ s/\.png$/_th.png/ ;
-
+#thumb
 #$num_images = $image->Read($image_in)  ;
+$image_out = $cddb_image_dir . "thumbs/" . $cddb_id . '_th.png' ;
+#print STDERR "The thumb file is:" . $image_out ;
 $image->Resize(geometry=>'32x32^') ;
-$image->Write($image_out_thumb)  ;
+$result = $image->Write($image_out)  ;
+#print STDERR "The result of Write is:" . $result ;
 
-my $image_out_favicon = $image_out ;
-$image_out_favicon =~ s/\.png$/_favicon.png/ ;
-
+#favicon
 #$num_images = $image->Read($image_in)  ;
+$image_out = $cddb_image_dir . "favicon/" . $cddb_id . '_favicon.png' ;
 $image->Resize(geometry=>'16x16^') ;
-$image->Write($image_out_favicon)  ;
+$image->Write($image_out)  ;
 
 undef $image ;
 
 #print "Converted $image_in to $image_out" ;
 #print '<p><a href="cddb-format.pl?' . $cddb_path . '">Return</a></p>' ;
 
-
-exit print $cgi->redirect('cddb-format.pl?' . $cddb_path );
+my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+exit print $cgi->redirect('cddb-format.pl?cddb=' . $cddb_genre_and_id );
 
 #####################
 ## output only on error

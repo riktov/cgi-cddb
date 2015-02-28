@@ -8,6 +8,7 @@ use English ; #for $PROGRAM_NAME
 #use utf8 ;
 
 use MyUtil ;
+use Cddb ;
 
 #forward declarations
 sub output_header_and_titles ;
@@ -34,6 +35,8 @@ my $IDX_COMPOSER = 2 ;
 #globals
 my $cddb_dir = '/home/r/riktov/.cddb/' ;
 my $cddb_image_dir = "../cddb_images/" ;
+my $cddb_image_thumbs_dir = "../cddb_images/thumbs/" ;
+my $cddb_image_favicon_dir = "../cddb_images/favicon/" ;
 my $rcfilepath = '.cddbrc' ;
 
 my %composer_of ;
@@ -95,10 +98,14 @@ print $query->start_html(-title=>$doc_title,
 					}
 				]
 			) ;
+
+print '<div id="program_description">' ;
 print "<h1>$doc_title</h1>\n" ;	
 
 print "<h2>\$remote_addr:$remote_addr</h2>\n" if $g_debug ;
 print "<h2>\$remote_host:$remote_host</h2>\n" if $g_debug ;
+
+print '</div>' ;
 
 #run in different modes
 if (! -d $cddb_dir) {	#error
@@ -119,8 +126,9 @@ else {			#process query
 	my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
 	my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
 	
-	print "<p>\t<h2>Tracks</h2>\n" ;
-	print "<p>\t<code>$grep_cmd_tracks</code><p>\n" if $g_debug ;
+	print '<div id="found_tracks">' ;
+	print "<h2>Tracks</h2>" ;
+	print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
 
 	my @found_grep = grep_results($grep_cmd_tracks) ;
 		
@@ -136,16 +144,17 @@ else {			#process query
 	@sorted_tracks = sort $sortref @found_tracks ;
 	
 	print_result_tracks(@sorted_tracks) ;
-
-	print '<hr>' ;	
-
-	print "<p>\t<h2>Albums</h2>\n" ;
-	print "<p>\t<code>$grep_cmd_albums</code><p>\n" if $g_debug ;
+	print '</div>' ;
+	
+	print '<div id="found_albums">' ;	
+	print "<h2>Albums</h2>" ;
+	print "<code>$grep_cmd_albums</code>" if $g_debug ;
 
 	my @found_albums ;
 	@found_albums = grep_results($grep_cmd_albums) ;
 	
 	print_result_albums(@found_albums) ;
+	print '</div>' ;
 }
 
 print $query->end_html ;
@@ -161,6 +170,7 @@ sub print_query_form {
 	$artist    = '' if !$artist ;
 	
 	print<<END_HERE
+<div id="query_form">
 <form method=GET class="CDDBQuery">
 	<div>
 		Title: <input name='title' value="$title">
@@ -173,6 +183,7 @@ sub print_query_form {
 	</div>
 	<input type=submit value='Search'>
 </form>
+</div>
 END_HERE
 }
 
@@ -401,7 +412,7 @@ sub print_result_tracks
 	my $cddb = $cddb_path ;
 	$cddb =~ s|.+/|| ;
 
-	my $thumbnail_path = $cddb_image_dir . $cddb . '_th.png';
+	my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
 
 	#print $thumbnail_path ;
 	my $thumbnail_link = '' ;
@@ -410,7 +421,9 @@ sub print_result_tracks
 	    $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
 	}
 
-	my $album_view_anchor = $thumbnail_link . "<a href=cddb-format.pl?cddb=$cddb_path>$album</a>" ;
+	my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+	
+	my $album_view_anchor = $thumbnail_link . "<a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a>" ;
 	
 	my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
 	my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
@@ -477,13 +490,30 @@ sub print_result_albums()
 	my @albums = @_ ;
 	my @sorted = sort sort_i map { local $_ = $_ ; s|(.+):DTITLE=(.+) / (.+)|$2$sep$3$sep$1| ; $_ } @albums ;    
 
-	print "<ul>\n";
+	print "<ul>";
 	foreach my $line (@sorted) {
 		$line =~ m|(.+)$sep(.+)$sep(.+)| ;
-		my ($artist, $album, $cddb) = ($1, $2, $3) ;
-		print '<li>'.MyUtil::tokenize_anchors_artist($artist)." : <a href=\"cddb-format.pl?$cddb\">".$album.'</a>' ;
+		my ($artist, $album, $cddb_path) = ($1, $2, $3) ;
+		print '<li>';
+
+		my $cddb = $cddb_path ;
+		$cddb =~ s/.*\/// ;
+		
+		my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+
+		#print $thumbnail_path . "<br/>" ;
+		my $thumbnail_link = '' ;
+
+		if(-f $thumbnail_path) {
+		    $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
+		    print $thumbnail_link ;
+		}
+		
+		my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+		print MyUtil::tokenize_anchors_artist($artist)." : <a href=\"cddb-format.pl?cddb=${cddb_genre_and_id}\">".$album ;
+		print '</a>' ;
 	}
-	print "</ul>\n"; 
+	print "</ul>"; 
 }
 
 sub get_track_line_value()
