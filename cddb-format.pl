@@ -299,21 +299,16 @@ sub find_mp3 {
 #    my $tracknum_str = sprintf("%02d", $tracknum + 1) ;
 #    my $uri = URI::Encode->new( { encode_reserved => 0 } );
 
-    $album =~ s/[ '\?\!]/_/g ;
+    $album  =~ s/[ '\?\!]/_/g ;
     $artist =~ s/[ '\?\!]/_/g ;
-    $title =~ s/[ '\?\!\/]/_/g ;
+    $title  =~ s/[ '\?\!\/]/_/g ;
 
     foreach my $dir (@mp3_dirs) {
 	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
 	$mp3_path = $mp3_path . '.mp3' ;
 
-#	$mp3_path = $uri->encode($mp3_path) ;
-	#print "$mp3_path<br/>" ;
-
-#	print "<a href=\"$mp3_path\">" . $mp3_path. "</a>" ;
-
+	#print $mp3_path . '<br/>' ;
 	if (-f $mp3_path) { 
-#	    print '[' . $mp3_path. "]<br>" ;
 	    return $mp3_path ;
 	}
     }
@@ -325,7 +320,7 @@ sub cover_source_image_path {
     my($artist, $album) = @_ ;
 
     my $path = "${artist}-${album}.jpg" ;
-    $path =~ tr|[ '\&+]|_| ;#replace illegal path characters
+    $path =~ tr|[ '\&+;]|_| ;#replace illegal path characters
 
     #use utf8?
     #$path =~ tr/[ô]/[o]/ ;#replace extended characters, not working with multiple characters

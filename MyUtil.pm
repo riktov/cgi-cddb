@@ -119,7 +119,7 @@ sub tokenize_anchors_composer
 
 sub loosen_accent
 {
-#converts accented characters in a string to an alternate of unaccented and accented variants of that character
+#converts accented characters in a string to a set of unaccented and accented variants of that character
 	my $string = shift ;
 
 	$string =~ s/ã/\[aã\]/g ;
