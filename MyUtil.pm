@@ -7,9 +7,11 @@ require Exporter ;
 	tokenize_anchors_artist
 	tokenize_anchors_composer
 	tokenize_anchors_title
-	loosen_accent
 	loosen_punctuation
 ) ;
+
+#	loosen_accent
+
 
 #@EXPORT_OK=qw() ;
 
