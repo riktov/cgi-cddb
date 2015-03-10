@@ -7,6 +7,9 @@ use strict ;
 use English ; #for $PROGRAM_NAME
 #use utf8 ;
 
+use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
+use Text::Unaccent::PurePerl ;
+    
 use MyUtil ;
 use Cddb ;
 
@@ -23,6 +26,7 @@ sub pattern_accents ;
 sub escape_chars ;
 sub sort_i ;
 sub lib_tokenize_anchors_artist ;
+sub loosen_accent ;
 
 
 #symbolic constants
@@ -234,36 +238,43 @@ sub query_pred_artist {
 	
 }
 
+sub loosen_accent {
+    my $string = shift ;
+
+    my $unaccented = unac_string($string) ;
+    return $unaccented ;
+}
+
 sub grep_command_line {
-	#tags	
-	my($tag, $querystring, $is_album_query) = @_ ;
-	
-	$querystring = escape_chars(loosen_accent(loosen_punctuation($querystring))) ;
-	#also escape parentheses
-	
-	my $query_pattern ;
-	
-	if ($is_album_query) {
-		if ($tag eq 'TTITLE' or $tag eq 'EXTT') {	# Look for composer in disc title, e.g., "Eliane Elias / Plays the Songs of Jobim"
-			$query_pattern = "\"DTITLE=.* / .*$querystring\"" ;				
-		} elsif ($tag eq 'TARTIST') {
-			$query_pattern = "\"DTITLE=.*$querystring.* / \"" ;		
-		}
-	} else {
-		if ($querystring =~ /\^(.+)/) {
-			$query_pattern = "\"$tag$re_dig$re_dig?=\\(?$1\"" ;		#optional parentheses wrapping composer		
-		} else {
-			$query_pattern = "\"$tag$re_dig$re_dig?=.*$querystring\"" ;			
-		}
-	}
-
-	my $cddb_spec = '*' ;	#genre subdirectories
-#	my $locale_spec = qq(LANG="ja_JP.UTF-8") ;
-	#TODO: maybe use Perl locale module?
-#	my $locale_spec = qq(LANG="en_US.UTF-8") ;
-	my $locale_spec = qq(LANG="pt_BR.UTF-8") ;
-
-	return qq(export $locale_spec ; egrep -i -d recurse -e $query_pattern $cddb_dir$cddb_spec) ;
+    #tags	
+    my($tag, $querystring, $is_album_query) = @_ ;
+    
+    $querystring = escape_chars(loosen_accent(loosen_punctuation($querystring))) ;
+    #also escape parentheses
+    
+    my $query_pattern ;
+    
+    if ($is_album_query) {
+        if ($tag eq 'TTITLE' or $tag eq 'EXTT') {	# Look for composer in disc title, e.g., "Eliane Elias / Plays the Songs of Jobim"
+            $query_pattern = "\"DTITLE=.* / .*$querystring\"" ;				
+        } elsif ($tag eq 'TARTIST') {
+            $query_pattern = "\"DTITLE=.*$querystring.* / \"" ;		
+        }
+    } else {
+        if ($querystring =~ /\^(.+)/) {
+            $query_pattern = "\"$tag$re_dig$re_dig?=\\(?$1\"" ;		#optional parentheses wrapping composer		
+        } else {
+            $query_pattern = "\"$tag$re_dig$re_dig?=.*$querystring\"" ;			
+        }
+    }
+    
+    my $cddb_spec = '*' ;	#genre subdirectories
+    #	my $locale_spec = qq(LANG="ja_JP.UTF-8") ;
+    #TODO: maybe use Perl locale module?
+    #	my $locale_spec = qq(LANG="en_US.UTF-8") ;
+    my $locale_spec = qq(LANG="pt_BR.UTF-8") ;
+    
+    return qq(export $locale_spec ; egrep -i -d recurse -e $query_pattern $cddb_dir$cddb_spec) ;
 }
 
 
@@ -403,84 +414,84 @@ sub print_result_tracks
     my @tracks = @_ ;
     my @output_lines ;
     
-##########
-##########
+    ##########
+    ##########
     
     foreach my $inforef (@tracks) {
-	my ($title, $artist, $composer, $album, $track_num, $cddb_path) = @{$inforef} ;
-	
-	my $cddb = $cddb_path ;
-	$cddb =~ s|.+/|| ;
-
-	my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
-
-	#print $thumbnail_path ;
-	my $thumbnail_link = '' ;
-
-	if(-f $thumbnail_path) {
-	    $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
-	}
-
-	my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
-	
-	my $album_view_anchor = $thumbnail_link . "<a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a>" ;
-	
-	my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
-	my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
-	my $artist_html   = tokenize_anchors_artist($artist) ;
-	
-	my $li_html ;
-	
-	my $checkbox = '';
-	$checkbox = "<input type='checkbox' name=\"$cddb\">" if $g_is_admin ;
-	
-# $li_html = "<li>$title_html : $composer_html : $artist_html -- $disc_html [$track_num] : \n" ;		
-	$li_html = "<tr>" .
-	    "<td>$title_html</td>" .
-	    "<td>$composer_html</td>" .
-	    "<td>$artist_html</td>" .
-	    "<td>$checkbox$album_view_anchor</td>" .
-	    "<td>$track_num</td></tr>" ;
-
-
-	my $uniq = 0 ;	#Hack
-#		if (!$uniq) { $li_html .= " : <a href=\"cddb-query.pl?artist=$artist\">$artist</a>" }
-	
-	push @output_lines, "$li_html" ;
+        my ($title, $artist, $composer, $album, $track_num, $cddb_path) = @{$inforef} ;
+        
+        my $cddb = $cddb_path ;
+        $cddb =~ s|.+/|| ;
+        
+        my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+        
+        #print $thumbnail_path ;
+        my $thumbnail_link = '' ;
+        
+        if(-f $thumbnail_path) {
+            $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
+        }
+        
+        my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+        
+        my $album_view_anchor = $thumbnail_link . "<div><a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a></div>" ;
+        
+        my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
+        my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
+        my $artist_html   = tokenize_anchors_artist($artist) ;
+        
+        my $li_html ;
+        
+        my $checkbox = '';
+        $checkbox = "<input type='checkbox' name=\"$cddb\">" if $g_is_admin ;
+        
+        # $li_html = "<li>$title_html : $composer_html : $artist_html -- $disc_html [$track_num] : \n" ;		
+        $li_html = "<tr>" .
+            "<td>$title_html</td>" .
+            "<td>$composer_html</td>" .
+            "<td>$artist_html</td>" .
+            "<td>$checkbox$album_view_anchor</td>" .
+            "<td>$track_num</td></tr>" ;
+        
+        
+        my $uniq = 0 ;	#Hack
+        #		if (!$uniq) { $li_html .= " : <a href=\"cddb-query.pl?artist=$artist\">$artist</a>" }
+        
+        push @output_lines, "$li_html" ;
     }
     
     #
     print "<form method=GET action=\"cddb-collect.cgi\">\n" ;
-	
-	my ($header_anchor_title, $header_anchor_composer, $header_anchor_artist) ;
-	
-	#$header_anchor_title    = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=title\">" ;
-	#$header_anchor_composer = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=composer\">" ;
-	#$header_anchor_artist   = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=artist\">" ;
+    
+    my ($header_anchor_title, $header_anchor_composer, $header_anchor_artist) ;
+    
+    #$header_anchor_title    = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=title\">" ;
+    #$header_anchor_composer = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=composer\">" ;
+    #$header_anchor_artist   = "<a href=\"cddb-query.pl?title=$title&artist=$artist&composer=$composer&sortby=artist\">" ;
 		
-	my ($classtag_title, $classtag_composer, $classtag_artist) = ('', '', '');
-	
-	#$classtag_artist   =' class="SortKey"' if($sortby eq 'artist') ;
-	#$classtag_composer =' class="SortKey"' if($sortby eq 'composer') ;
-	#$classtag_title    =' class="SortKey"' if($sortby eq 'title') ;
-
-	print "<table class=\"sortable\">\n" ;
-	
-	#table header	
-	print "\t<tr>" ;
-	print "<th>Title</th>" ;
-	print "<th>Composer</th>" ;
-	print "<th>Artist</th>" ;
-	print "<th>Album</th><th>Track No.</th></tr>\n" ;
-	
-	print join '', @output_lines ;
-
-	print "</table>\n" ;
-	
-	print "<input type=submit value='Add to collection'>\n" ; 
-
-	print "</form>\n" ;
-
+    my ($classtag_title, $classtag_composer, $classtag_artist) = ('', '', '');
+    
+    #$classtag_artist   =' class="SortKey"' if($sortby eq 'artist') ;
+    #$classtag_composer =' class="SortKey"' if($sortby eq 'composer') ;
+    #$classtag_title    =' class="SortKey"' if($sortby eq 'title') ;
+    
+    print '<table class="sortable" id="found_tracks">' ;
+    
+    #table header	
+    print "\t<tr>" ;
+    print "<th>Title</th>" ;
+    print "<th>Composer</th>" ;
+    print "<th>Artist</th>" ;
+    print "<th>Album</th><th>Track No.</th></tr>\n" ;
+    
+    print join '', @output_lines ;
+    
+    print "</table>\n" ;
+    
+    print "<input type=submit value='Add to collection'>\n" ; 
+    
+    print "</form>\n" ;
+    
 }
 
 
@@ -510,7 +521,9 @@ sub print_result_albums()
 		}
 		
 		my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+    print '<div>' ;
 		print MyUtil::tokenize_anchors_artist($artist)." : <a href=\"cddb-format.pl?cddb=${cddb_genre_and_id}\">".$album ;
+    print '</div>' ;
 		print '</a>' ;
 	}
 	print "</ul>"; 

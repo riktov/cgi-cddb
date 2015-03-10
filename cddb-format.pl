@@ -307,8 +307,9 @@ sub find_mp3 {
 	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
 	$mp3_path = $mp3_path . '.mp3' ;
 
-	#print $mp3_path . '<br/>' ;
-	if (-f $mp3_path) { 
+	print $mp3_path . '<br/>' ;
+	if (-f $mp3_path) {
+	    print "Found $mp3_path" ;
 	    return $mp3_path ;
 	}
     }
