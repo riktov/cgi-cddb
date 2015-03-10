@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/usr/bin/env perl -w
 #
 # cddb-format.pl
 #
@@ -12,6 +12,7 @@ use strict ;
 use utf8 ;
 use URI::Encode ;
 use MyUtil ;
+use CddbMp3 ;
 
 use vars qw($opt_h $opt_t $opt_a) ;
 use Getopt::Std ;
@@ -27,7 +28,7 @@ sub print_debug_window ;
 sub print_footer ;
 sub print_cover_image ;
 sub tokenize_anchors_title ;
-sub find_mp3 ;
+#sub find_mp3 ;
 sub printbr ;
 
 #http://localhost/~paul/music/Bill_Evans/Yesterday_I_Heard_The_Rain/03%20-%20My_Romance.mp3
@@ -39,7 +40,7 @@ my $rcfilepath = '.cddbrc' ;
 
 my $image_dir = "../cddb_images/" ;
 my $album_covers_dir="../album_covers/" ;
-my @mp3_dirs = ('../ext_music/', '../music/') ;
+#my @mp3_dirs = ('../ext_music/', '../music/') ;
 
 
 #options
@@ -133,6 +134,9 @@ else {
 }
 
 print_artist_and_title();
+
+CddbMp3::loadrc() ;
+
 print_tracks();
 print_cover_image() if $opt_html ;
 print_debug_window() ;
@@ -190,129 +194,101 @@ sub read_cddb
 
 sub print_artist_and_title()
 {
-	my ($d_artist_fmt, $d_title_fmt, $d_artist_link, $d_image_thumb) ;
-	$d_artist_link = "" ;
-	
-	if ($opt_html) {
-		if (!$is_compilation) {
-			$d_artist_link = tokenize_anchors_artist($d_artist) ;
+    my ($d_artist_fmt, $d_title_fmt, $d_artist_link, $d_image_thumb) ;
+    $d_artist_link = "" ;
+    
+    if ($opt_html) {
+        if (!$is_compilation) {
+            $d_artist_link = tokenize_anchors_artist($d_artist) ;
+        }
+        $d_artist_fmt = "<h2>$d_artist_link</h2>\n" ;
+        
+        $d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
+        
+        $d_title_fmt  = "<h1>$d_title</h1>" ;
 		}
-		$d_artist_fmt = "<h2>$d_artist_link</h2>\n" ;
-
-		$d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
-
-		$d_title_fmt  = "<h1>$d_title</h1>" ;
-		}
-	else {
-		$d_artist_fmt = "#$d_artist - " ;
-		$d_title_fmt  = $d_title ;
+    else {
+        $d_artist_fmt = "#$d_artist - " ;
+        $d_title_fmt  = $d_title ;
 		}
 		
-
-	print '<div id="disc_title">' if $opt_html ;
-
-	print "$d_artist_fmt" ;
-	print "<div><img src=\"${d_image_thumb}\" />" if $opt_html;
-	print "$d_title_fmt\n" ;
-	
-	print '</div></div>' if $opt_html ;
-
+    
+    print '<div id="disc_title">' if $opt_html ;
+    
+    print "$d_artist_fmt" ;
+    print "<div><img src=\"${d_image_thumb}\" />" if $opt_html;
+    print "$d_title_fmt\n" ;
+    
+    print '</div></div>' if $opt_html ;
+    
 }
 
 
 sub print_tracks()
 {
     if($opt_html) {
- 	print '<div id="track_listing">' ;
-	print '<ol>'  ;
+        print '<div id="track_listing">' ;
+        print '<ol>'  ;
     }
+    
+    my $idx ;
+    my ($track_fmt, $artist_html, $title_html, $mp3_html) ;
+    my $track_num = 1 ;
+    
+    for($idx = 0 ; $idx <= $num_tracks ; $idx++) {
+        $artist_html = '' ;
+        my ($title, $artist, $composer) = ($tr_title[$idx], $tr_artist[$idx], $tr_composer[$idx]) ;
+        
+        $composer =~ tr/\(\)//d ;
 
-	
-	my $idx ;
-
-	my ($track_fmt, $artist_html, $title_html, $mp3_html) ;
-
-	my $track_num = 1 ;
-
-	for($idx = 0 ; $idx <= $num_tracks ; $idx++) {
-		$artist_html = '' ;
-		my ($title, $artist, $composer) = ($tr_title[$idx], $tr_artist[$idx], $tr_composer[$idx]) ;
-
-		$composer =~ tr/\(\)//d ;
-		if ($artist ne '') {
-			my $links = MyUtil::tokenize_anchors_artist($artist) ;
-			$artist_html = " - $links" ;
-			$artist = "\t$artist" ; 	#for console mode
-		} 
-
-		my $composer_html = MyUtil::tokenize_anchors_composer($composer) ;
-		
-		if ($composer_html ne '') {
-			$composer_html = " <i><small>($composer_html)</small></i>" ;
-		}
-
-		if($opt_html) {
-			my $links = MyUtil::tokenize_anchors_title($title) ;
-			$title_html = "<b>$links</b>" ;
-
-			my $idx_1 = sprintf("%02d", $idx + 1) ;
-
-			
-			my $mp3_path = '' ;
-			#$mp3_path = "$mp3_dir$d_artist/$d_title/$idx_1${title}.mp3" ;
-			$mp3_path = find_mp3($d_artist, $d_title, $idx_1, $title) ;
-
-			#print $mp3_path ;
-
-			my $mp3_alink = '' ;
-
-			if ($mp3_path ne '') { 
-			    $mp3_alink = '[<a href="' . $mp3_path . '">mp3</a>]' ;
-			}
-
-			$track_fmt = "<li>$title_html$artist_html$composer_html $mp3_alink"  ;
-		} else {
-			$track_fmt = "$track_num $title$artist" ;
-		}
-		print "$track_fmt" ;	
-		
-		$track_num++ ;
-	}
+        if ($artist ne '') {
+            my $links = MyUtil::tokenize_anchors_artist($artist) ;
+            $artist_html = " - $links" ;
+            $artist = "\t$artist" ; 	#for console mode
+        } 
+        
+        my $composer_html = MyUtil::tokenize_anchors_composer($composer) ;
+        
+        if ($composer_html ne '') {
+            $composer_html = " <i><small>($composer_html)</small></i>" ;
+        }
+        
+        if($opt_html) {
+            $title_html = '<b>' . MyUtil::tokenize_anchors_title($title) . '</b>' ;
+            
+            my $idx_1 = sprintf("%02d", $idx + 1) ;
+            
+            my $mp3_path = '' ;
+            #$mp3_path = "$mp3_dir$d_artist/$d_title/$idx_1${title}.mp3" ;
+            $mp3_path = CddbMp3::find_mp3_file($d_artist, $d_title, $idx_1, $title) ;
+            
+            #print "The mp3 path: $mp3_path" ;
+            
+            my $mp3_alink = '' ;
+            
+            if ($mp3_path ne '') { 
+                $mp3_alink = '[<a href="' . $mp3_path . '">mp3</a>]' ;
+            }
+            
+            print '<li>' ;
+            print "$title_html$artist_html$composer_html ${mp3_alink}" ;
+            print '</li>'  ;
+        } else {
+            print "$track_num $title$artist" ;
+        }
+        
+        $track_num++ ;
+    }
 		
     if($opt_html) {
-	print '</ol>' if $opt_html ;
-	print '</div>' ;
+        print '</ol>' if $opt_html ;
+        print '</div>' ;
     }
 }
 
 sub mp3_directory {
     my($artist, $album) = @_ ;
 
-}
-
-#return the first valid path for a mp3 file in the mp3 directories
-sub find_mp3 {
-    my($artist, $album, $tracknum, $title) = @_ ;
-
-    #return 1 ;
-    #mogrify the strings
-#    my $tracknum_str = sprintf("%02d", $tracknum + 1) ;
-#    my $uri = URI::Encode->new( { encode_reserved => 0 } );
-
-    $album  =~ s/[ '\?\!]/_/g ;
-    $artist =~ s/[ '\?\!]/_/g ;
-    $title  =~ s/[ '\?\!\/]/_/g ;
-
-    foreach my $dir (@mp3_dirs) {
-	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
-	$mp3_path = $mp3_path . '.mp3' ;
-
-	#print $mp3_path . '<br/>' ;
-	if (-f $mp3_path) { 
-	    return $mp3_path ;
-	}
-    }
-    return '' ;
 }
 
 #return the path of the unprocessed album cover image, or '' if none
@@ -335,24 +311,24 @@ sub print_cover_image() {
     $imgfile = $imgfile . '.png' ;
 
     #print $imgfile . '</br>' ;
-
+    
     print '<div id="album_cover">' ;
     
     if(-f $imgfile) {		
-		print '<img src="' . $imgfile . '">' ;
+        print "<img src=\"$imgfile\">" ;
     } else {
-		my $cover_source_image_path = cover_source_image_path($d_artist, $d_title) ;
+        my $cover_source_image_path = cover_source_image_path($d_artist, $d_title) ;
+        
+        my $cover_convert_link = '' ;
 	
-		my $cover_convert_link = '' ;
-	
-		if(-f $cover_source_image_path) {
-			#print $fixed_name ;
-			$cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path}&cddb=${infile}>Convert Cover Image</a>" ;
-			print $cover_convert_link ;
-		} else {
-			print '<input type="file">Input File</input>' ;
-			print "Copy the image file to ${cover_source_image_path}" ;
-		}
+        if(-f $cover_source_image_path) {
+            #print $fixed_name ;
+            $cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path}&cddb=${infile}>Convert Cover Image</a>" ;
+            print $cover_convert_link ;
+        } else {
+            print '<input type="file">Input File</input><br/>' ;
+            print "Copy the image file to ${cover_source_image_path}" ;
+        }
     }
     
     print '</div>' ;
@@ -384,7 +360,6 @@ sub print_footer()
 
 	print<<EOF
 <p>
-
 
 <hr>
 <form method="GET" action="iconv.cgi">

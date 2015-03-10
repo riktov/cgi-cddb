@@ -7,8 +7,8 @@ use strict ;
 use English ; #for $PROGRAM_NAME
 #use utf8 ;
 
-use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
-use Text::Unaccent::PurePerl ;
+#use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
+#use Text::Unaccent::PurePerl ;
     
 use MyUtil ;
 use Cddb ;
@@ -26,7 +26,7 @@ sub pattern_accents ;
 sub escape_chars ;
 sub sort_i ;
 sub lib_tokenize_anchors_artist ;
-sub loosen_accent ;
+#sub loosen_accent ;
 
 
 #symbolic constants
@@ -238,15 +238,16 @@ sub query_pred_artist {
 	
 }
 
-sub loosen_accent {
-    my $string = shift ;
-
-    my $unaccented = unac_string($string) ;
-    return $unaccented ;
-}
+#sub loosen_accent {
+#    my $string = shift ;
+#
+#    my $unaccented = unac_string($string) ;
+#    return $unaccented ;
+#}
 
 sub grep_command_line {
     #tags	
+
     my($tag, $querystring, $is_album_query) = @_ ;
     
     $querystring = escape_chars(loosen_accent(loosen_punctuation($querystring))) ;

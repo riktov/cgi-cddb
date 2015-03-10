@@ -1,4 +1,4 @@
-#!/usr/bin/perl -w
+#!/opt/local/bin/perl -w
 # CGI to convert image file found in a separate directory to cddb web image 
 
 use strict ;
