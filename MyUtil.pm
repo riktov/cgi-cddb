@@ -1,5 +1,8 @@
 package MyUtil ;
 
+#Functions to split titles and names by punctuation and wrap each in anchors.
+#Functions to "loosen" accented characters for matching with grep.
+
 require Exporter ;
 @ISA = qw(Exporter) ;
 
@@ -7,8 +10,8 @@ require Exporter ;
 	tokenize_anchors_artist
 	tokenize_anchors_composer
 	tokenize_anchors_title
-	loosen_accent
 	loosen_punctuation
+	loosen_accent
 ) ;
 
 #@EXPORT_OK=qw() ;
@@ -22,7 +25,9 @@ require Exporter ;
 #tokenizing the same anchors repeatedly, we memoize with a hash.
 my %composer_anchor_of ;
 
-sub html_query
+my $cddb_query_script = 'cddb-query.pl' ; #may be changed
+
+sub query_anchor
 {
 	my ($tag, $query) = @_ ;
 
@@ -35,7 +40,7 @@ sub html_query
 	my $wikipedia_anchor = '' ;
 	#$wikipedia_anchor = "<a href=\"http://en.wikipedia.org/wiki/$query\"><img src=\"../images/wp_icon.png\"></a>" ;
 	
-	return "<a href=\"cddb-query.pl?$tag=$query\">$query</a>$wikipedia_anchor" ;
+	return "<a href=\"${cddb_query_script}?$tag=$query\">$query</a>$wikipedia_anchor" ;
 }
 
 sub tokenize_anchors_title
@@ -45,13 +50,29 @@ sub tokenize_anchors_title
 	if (!$line) { return '' ; }
 	
 	#alternate title in parentheses
-	if ($line =~ m|(.*)(\()(.+?)(\))(.*)|) {
-		return tokenize_anchors_title($1).$2.tokenize_anchors_title($3).$4.tokenize_anchors_title($5) ;
+	if ($line =~ m|(.*)\((.+?)\)(.*)|) {
+      my $before = $1 ;
+      my $after = $3 ;
+      my $title = $2 ;
+      
+      return 
+          tokenize_anchors_title($before) .
+          '(' .
+          tokenize_anchors_title($title) . 
+          ')' . 
+          tokenize_anchors_title($after) ;
 	}
 	
-	#two tracks separated by slash or other single character
+	#two tracks separated by slash or other single character surrounded by one or more spaces
 	if ($line =~ m|(.+?)( +[/\-\&\~] +)(.*)|) {
-		return tokenize_anchors_title($1).$2.tokenize_anchors_title($3) ;
+      my $before = $1 ;
+      my $separator = $2 ;
+      my $after = $3 ;
+      
+      return 
+          tokenize_anchors_title($before) . 
+          $separator . 
+          tokenize_anchors_title($before) ;
 	}
 	
 	#two tracks separated by colon without preceding space
@@ -59,7 +80,7 @@ sub tokenize_anchors_title
 		return tokenize_anchors_title($1).$2.tokenize_anchors_title($3) ;
 	}
 
-	my $result = html_query('title', $line) ;
+	my $result = query_anchor('title', $line) ;
 	return $result ;
 }
 
@@ -77,18 +98,18 @@ sub tokenize_anchors_artist
 	if (
 	    ($line =~ m|(.+?)( +[/\-\&\+] +)(.*)|) or	#space-delimited punctuation
 	    ($line =~ m|(.+?)([,:] )(.*)|) 	#comma or colon has no preceding space
-	   ) {
-		return tokenize_anchors_artist($1).$2.tokenize_anchors_artist($3) ;
+      ) {
+      return tokenize_anchors_artist($1).$2.tokenize_anchors_artist($3) ;
 	}
-
+  
 	if ($line =~ m/(.*?)( *)\b(e|featuring|with|and)( +)(.*)/i) {
-		return tokenize_anchors_artist($1).$2.$3.$4.tokenize_anchors_artist($5) ;
-		#words
+      return tokenize_anchors_artist($1).$2.$3.$4.tokenize_anchors_artist($5) ;
+      #words
 	}
 	
-	my $result = html_query('artist', $line) ;
+	my $result = query_anchor('artist', $line) ;
 	return $result ;
-
+  
 }
 
 
@@ -106,10 +127,10 @@ sub tokenize_anchors_composer
 
 	if ($line =~ m|(.+?)( +[/\-\&] +)(.*)|) { #two names separated by slash or other characters bordered by spaces
 		$result = tokenize_anchors_composer($1).$2.tokenize_anchors_composer($3) ;
-	} elsif ($line =~ m|(.+?)([,] )(.*)|) { #two tracks separated by comma
+	} elsif ($line =~ m|(.+?)([,] )(.*)|) { #two names separated by comma, no space required before
 		$result = tokenize_anchors_composer($1).$2.tokenize_anchors_composer($3) ;
 	} else {
-		$result = html_query('composer', $line) ;
+		$result = query_anchor('composer', $line) ;
 	}
 
 	$composer_anchor_of{$line} = $result ;
@@ -126,6 +147,7 @@ sub loosen_accent
 	$string =~ s/á/\[aá\]/g ;
 	$string =~ s/é/\[eé\]/g ;
 	$string =~ s/ê/\[eê\]/g ;
+  $string =~ s/í/\[ií\]/g ;
 	$string =~ s/ó/\[oó\]/g ;
 	$string =~ s/ô/\[oô\]/g ;
 	$string =~ s/ú/\[uú\]/g ;

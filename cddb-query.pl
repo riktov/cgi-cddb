@@ -7,11 +7,13 @@ use strict ;
 use English ; #for $PROGRAM_NAME
 #use utf8 ;
 
-use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
-use Text::Unaccent::PurePerl ;
+
+#use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
+#use Text::Unaccent::PurePerl ;
     
 use MyUtil ;
 use Cddb ;
+use CddbMp3 ;
 
 #forward declarations
 sub output_header_and_titles ;
@@ -64,6 +66,7 @@ if (open RCFILE, $rcfilepath) {
 	close RCFILE ;
 }
 
+CddbMp3::loadrc() ;
 
 #who am I?
 my $cgi_url = $PROGRAM_NAME ;
@@ -238,6 +241,7 @@ sub query_pred_artist {
 	
 }
 
+<<<<<<< HEAD
 sub loosen_accent {
     my $string = shift ;
 
@@ -247,6 +251,18 @@ sub loosen_accent {
 
 sub grep_command_line {
     #tags	
+=======
+#sub loosen_accent {
+#    my $string = shift ;
+#
+#    my $unaccented = unac_string($string) ;
+#    return $unaccented ;
+#}
+
+sub grep_command_line {
+    #tags	
+
+>>>>>>> 6c486b32dd2d536fff512b42e425fa699c1ef90b
     my($tag, $querystring, $is_album_query) = @_ ;
     
     $querystring = escape_chars(loosen_accent(loosen_punctuation($querystring))) ;
@@ -435,8 +451,32 @@ sub print_result_tracks
         my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
         
         my $album_view_anchor = $thumbnail_link . "<div><a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a></div>" ;
+<<<<<<< HEAD
         
         my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
+=======
+
+        #print "The album  is [ $album ]<br/>" ;
+
+        my @artist_and_album = split(' / ', $album) ;
+
+        my $track_num_zero = sprintf("%02d", $track_num) ;
+
+        my $mp3_path = CddbMp3::find_mp3_file($artist_and_album[0], $artist_and_album[1], $track_num_zero, $title) ;
+
+        my $mp3_anchor = '' ;
+        
+        if (-f $mp3_path) {
+            $mp3_anchor = "<a href=\"$mp3_path\">[mp3]</a>" ;
+        }
+        
+        my $title_html    = 
+            '<b>' . 
+            tokenize_anchors_title($title) .
+            $mp3_anchor . 
+            '</b>' ;
+        
+>>>>>>> 6c486b32dd2d536fff512b42e425fa699c1ef90b
         my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
         my $artist_html   = tokenize_anchors_artist($artist) ;
         
