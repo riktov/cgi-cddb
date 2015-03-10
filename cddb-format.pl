@@ -68,7 +68,6 @@ getopts('aht') ;
 if ($opt_h)	{ $opt_html = 1 ; }	#HTML output
 if ($opt_t)	{ $opt_html = 0 ; }	#text output
 
-
 # start CGI
 my $cgi = new CGI ;
 
@@ -258,16 +257,14 @@ sub print_tracks()
             
             my $idx_1 = sprintf("%02d", $idx + 1) ;
             
-            my $mp3_path = '' ;
-            #$mp3_path = "$mp3_dir$d_artist/$d_title/$idx_1${title}.mp3" ;
-            $mp3_path = CddbMp3::find_mp3_file($d_artist, $d_title, $idx_1, $title) ;
-            
-            #print "The mp3 path: $mp3_path" ;
+            my $mp3_path = CddbMp3::find_mp3_file($d_artist, $d_title, $idx_1, $title) ;
             
             my $mp3_alink = '' ;
             
-            if ($mp3_path ne '') { 
-                $mp3_alink = '[<a href="' . $mp3_path . '">mp3</a>]' ;
+            if ( -f $mp3_path) { 
+                $mp3_alink = '[<a href=""' . $mp3_path . '">mp3</a>]' ;
+            } else {
+                #$mp3_alink = $mp3_path ;
             }
             
             print '<li>' ;

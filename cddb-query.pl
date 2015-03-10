@@ -12,6 +12,7 @@ use English ; #for $PROGRAM_NAME
     
 use MyUtil ;
 use Cddb ;
+use CddbMp3 ;
 
 #forward declarations
 sub output_header_and_titles ;
@@ -64,6 +65,7 @@ if (open RCFILE, $rcfilepath) {
 	close RCFILE ;
 }
 
+CddbMp3::loadrc() ;
 
 #who am I?
 my $cgi_url = $PROGRAM_NAME ;
@@ -436,8 +438,27 @@ sub print_result_tracks
         my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
         
         my $album_view_anchor = $thumbnail_link . "<div><a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a></div>" ;
+
+        #print "The album  is [ $album ]<br/>" ;
+
+        my @artist_and_album = split(' / ', $album) ;
+
+        my $track_num_zero = sprintf("%02d", $track_num) ;
+
+        my $mp3_path = CddbMp3::find_mp3_file($artist_and_album[0], $artist_and_album[1], $track_num_zero, $title) ;
+
+        my $mp3_anchor = '' ;
         
-        my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
+        if (-f $mp3_path) {
+            $mp3_anchor = "<a href=\"$mp3_path\">[mp3]</a>" ;
+        }
+        
+        my $title_html    = 
+            '<b>' . 
+            tokenize_anchors_title($title) .
+            $mp3_anchor . 
+            '</b>' ;
+        
         my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
         my $artist_html   = tokenize_anchors_artist($artist) ;
         
