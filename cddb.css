@@ -1,0 +1,126 @@
+/***
+ Style sheet for Paul's CDDB Local web utilities
+ ***/
+
+code {
+	#background-color: aqua ;
+	font-size: 11pt ;
+}
+
+a {
+	text-decoration: none
+}
+
+th {
+	text-align: left ;
+	background-color: yellow ;
+	border-width: thin ;
+	border-style: solid ;
+	padding: 0.2em 0.5em ;
+}
+
+td {
+	border-width: thin ;
+	border-style: solid ;
+	padding: 0.2em 0.5em ;
+	/*font-size: small*/
+}
+
+table {
+	border-width: thin ;
+	border-style: solid ;
+	border-collapse: collapse
+}
+
+.CDDBQuery {
+	/*background-color: #559090*/
+}
+
+.CDDBQuery div {
+	float: left ;
+	width: 30%
+}
+
+.CDDBQuery form {
+	width: 100% ;
+}
+
+th.SortKey {
+	background-color: pink ;	
+}
+
+#disc_title {
+	margin-bottom: 10px
+}
+
+#disc_title h2 {
+	margin: 0 0 10px ;
+}
+
+#disc_title > div {
+	display: block ;
+	height: 38px ;
+	background-color: grey ;
+	color: white
+}
+
+#disc_title > div > h1 {
+	margin-top: 0 ;
+	margin-bottom: 0 ;
+	font-size: 30px
+}
+
+#disc_title > div > img {
+		float:left ;
+		margin-right: 10px ;
+		padding: 3px
+}
+
+#track_listing {
+    /*background-color:pink ;*/
+    width: 60% ;
+    float: left ;
+    margin-right: 20px
+}
+
+#track_listing {
+
+}
+
+#track_listing ol {
+	margin-top: 0 ;
+}
+
+
+#found_albums ul{
+	list-style: none ;
+	padding: 0 ;
+}
+
+#found_albums ul li {
+	height: 32px ;
+	border: solid thin black ;
+}
+
+#found_albums ul li > *,
+#found_tracks tr td > * {
+/*    float:left */
+}
+
+#found_albums ul li > img,
+#found_tracks tr td > img {
+    float: left ;
+    margin-right: 10px ;
+}
+
+#found_albums ul li > div,
+#found_tracks tr td > div {
+    margin-left: 10px ;
+    margin-top: 0.5em
+}
+
+.Debug {
+    padding: 10px ;
+    background-color:black ;
+    color: #7fff7f
+}
