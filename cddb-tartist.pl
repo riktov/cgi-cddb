@@ -1,4 +1,7 @@
 #!/usr/bin/perl -w
+###########################
+# Converts a standard CDDB file in "TTITLE=TrackTitle / Artist" format
+# to the TARTIST format
 
 use strict ;
 
@@ -113,4 +116,3 @@ foreach $line (@all_lines) {
         print $line ;
     }
 }
-

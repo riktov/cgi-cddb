@@ -62,7 +62,6 @@ if (open RCFILE, $rcfilepath) {
 	close RCFILE ;
 }
 
-
 # command-line options
 getopts('aht') ;
 if ($opt_h)	{ $opt_html = 1 ; }	#HTML output
@@ -85,62 +84,72 @@ if (!$infile) {
 	$infile = $ARGV[0] ;
 }
 
-
 #globals
-my ($d_artist, $d_title, $num, $num_tracks) ;
-my $is_compilation = 0 ;
-my (@tr_title, @tr_artist, @tr_composer) ;
+#my ($num) ;
+#my $is_compilation = 0 ;
+#my (@tr_title, @tr_artist, @tr_composer) ;
 
 $infile or die "Can't get infile!\n" ;
 #print "INFILE: $infile\n" ;
 #die "Input file required\n" unless $infile ;
 
+#TODO - if the link is relative, we need to append it to the directory of the original infile
 if (-l $infile) {
-	$infile = readlink($infile) ;
+    #print STDERR "The file $infile is a link\n" ;
+    my $link_dest = readlink($infile) ;
+    if ($link_dest =~ m|^/|) {
+        $infile = $link_dest ;
+    } else {
+        $infile =~ s|(.+/).+|$1| ;#trim file from last directory
+        $infile = $infile . $link_dest ;
+    }
+    #print STDERR "The linked file is $infile\n" ;
 	}
-
-read_cddb($infile) ;
-
-
-#output
-if ($is_cgi) {
-	print $cgi->header(
-		-type    => 'text/html',
-        -charset => 'utf-8');
-}
 
 my $cddb_id = $infile ;
 $cddb_id =~ s|.+/|| ;
 
+#read cddb here 
+my %cddb_info = read_cddb($infile) ;
 
-if($opt_html) {                   
-	print $cgi->start_html(
-	    -title=>"$d_title - $d_artist", 
-	    -style=>'../css/cddb.css',
-	    -head=> $cgi->Link({
-			-href=>"../cddb_images/favicon/${cddb_id}_favicon.png",
-			-type=>'image/png',
-			-rel=>'icon',
-			}),
-		-script=>{
-			-type=>'text/javascript',
-			-src=>'../js/dragimage.js'
-			}
-		) ;
+#output
+if ($is_cgi) {
+    print $cgi->header(
+        -type    => 'text/html',
+        -charset => 'utf-8');
+}
+
+if($opt_html) {              
+    my $artist = $cddb_info{'artist'} ;
+    my $title = $cddb_info{'title'} ;
+    
+    print $cgi->start_html(
+        -title=>"$title - $artist", 
+        -style=>'../css/cddb.css',
+        -head=> $cgi->Link({
+            -href=>"../cddb_images/favicon/${cddb_id}_favicon.png",
+            -type=>'image/png',
+            -rel=>'icon',
+                           }),
+        -script=>{
+            -type=>'text/javascript',
+            -src=>'../js/dragimage.js'
+        }
+        ) ;
 }
 else {
-	print "# $infile\n" ; 
+    print "# $infile\n" ; 
 }
-
-print_artist_and_title();
 
 CddbMp3::loadrc() ;
 
-print_tracks();
-print_cover_image() if $opt_html ;
-print_debug_window() ;
+print_artist_and_title(\%cddb_info);
+print_tracks(\%cddb_info);
+print_cover_image(\%cddb_info) if $opt_html ;
+print_debug_window(\%cddb_info) ;
 print_footer();
 
+##############################################################################
 #end of main()
 
 sub read_cddb
@@ -148,83 +157,100 @@ sub read_cddb
 	my $filepath = shift ;
 	open (INFILE, $filepath) or die "Can't open file $filepath\n";
 	
-	my ($track, $comment) ;
-
+	my ($artist, $title, $num_tracks, $num, $track, $is_compilation) ;
+  
+  my %cddb_disc ;
+  my (@track_titles, @track_artists, @track_extras) ;
 	my $line ;
 	while ($line = <INFILE>) {
 		if ($line =~ /DTITLE=(.+) \/ (.+)/) {
-			$d_artist = $1 ;
-			$d_title  = $2 ;
-			if ($d_artist =~/^Various/i) {
+			$artist = $1 ;
+			$title  = $2 ;      
+			if ($artist =~/^Various/i) {
 				$is_compilation = 1 ;
 				}
 			}
 	
 		if ($line =~ /TTITLE(\d+)=(.+)/) {
-			$num_tracks = $num = $1 ;
-			$track = $2 ;
-			
-			$tr_title[$num] = $track ;
-			$tr_artist[$num] = '' ;
-			#print "$track\n" ;
-			}
-	
-		if ($line =~ /TARTIST(\d+)=(.+)/) {
-			$num = $1 ;
-			$track = $2 ;
-			
-			$tr_artist[$num] = $track ;
-			
-			#print "$track\n" ;
-			}
-	
+        $num = $1 ;
+        $track = $2 ;
+        $track_titles[$num] = $track ;
+        $track_artists[$num] = '' ;
+        $num_tracks = $num ; 			
+    }
+    
+		if ($line =~ /TARTIST(\d+)=(.*)/) {
+        $num = $1 ;
+        $track = $2 ;
+        $track_artists[$num] = $track ;
+    }
+    
 		if ($line =~ /EXTT(\d+)=(.*)/) {
-			$num = $1 ;
-			$comment = $2 ;
-			
-			$tr_composer[$num] = $comment ;
-			#print "$num:$comment\n" ;
-			}	
-		}
-	$d_artist or die "Couldn't parse disc artist in $infile\n" ;
+        $num = $1 ;
+        $track = $2 ;
+        $track_extras[$num] = $track ;
+    }	
+  }
+	$artist or die "Couldn't parse disc artist in $infile\n" ;
 	
 	close INFILE ;
+
+  $cddb_disc{'artist'} = $artist ;
+  $cddb_disc{'title'} = $title ;
+  $cddb_disc{'num_tracks'} = $num_tracks ;
+  $cddb_disc{'is_compilation'} = $is_compilation ;
+  $cddb_disc{'track_titles'} = \@track_titles ;
+  $cddb_disc{'track_artists'} = \@track_artists ;
+  $cddb_disc{'track_extras'} = \@track_extras ;
+  
+  return %cddb_disc ;
 	}
 
 sub print_artist_and_title()
 {
+    my $cddb_ref = shift ;
+    my %cddb = %$cddb_ref ;
+    
+    my $artist = $cddb{'artist'} ;
+    my $title  = $cddb{'title'} ;
+    
     my ($d_artist_fmt, $d_title_fmt, $d_artist_link, $d_image_thumb) ;
     $d_artist_link = "" ;
-    
+
     if ($opt_html) {
-        if (!$is_compilation) {
-            $d_artist_link = tokenize_anchors_artist($d_artist) ;
-        }
+        $d_artist_link = tokenize_anchors_artist($artist) ;
         $d_artist_fmt = "<h2>$d_artist_link</h2>\n" ;
         
         $d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
         
-        $d_title_fmt  = "<h1>$d_title</h1>" ;
-		}
-    else {
-        $d_artist_fmt = "#$d_artist - " ;
-        $d_title_fmt  = $d_title ;
-		}
-		
-    
-    print '<div id="disc_title">' if $opt_html ;
-    
-    print "$d_artist_fmt" ;
-    print "<div><img src=\"${d_image_thumb}\" />" if $opt_html;
-    print "$d_title_fmt\n" ;
-    
-    print '</div></div>' if $opt_html ;
-    
+        $d_title_fmt  = "<h1>$title</h1>" ;
+        
+        print '<div id="disc_title">';
+        print "$d_artist_fmt" ;
+        print "<div><img src=\"${d_image_thumb}\" />" ;		
+        print "$d_title_fmt\n" ;
+        print '</div></div>' ;
+    } else {
+        $d_artist_fmt = "#${artist} - " ;
+        $d_title_fmt  = $title ;
+        print "$d_artist_fmt" ;
+        print "$d_title_fmt\n" ;		
+    }
 }
 
 
 sub print_tracks()
 {
+    my $cddb_ref = shift ;
+    my %cddb = %$cddb_ref ;
+    
+    my $track_titles_ref  = $cddb{'track_titles'} ;
+    my @track_titles = @$track_titles_ref ;
+    my $track_artists_ref = $cddb{'track_artists'} ;
+    my @track_artists = @$track_artists_ref ;
+    my $track_extras_ref  = $cddb{'track_extras'} ;
+    my @track_extras = @$track_extras_ref ;
+
     if($opt_html) {
         print '<div id="track_listing">' ;
         print '<ol>'  ;
@@ -234,9 +260,9 @@ sub print_tracks()
     my ($track_fmt, $artist_html, $title_html, $mp3_html) ;
     my $track_num = 1 ;
     
-    for($idx = 0 ; $idx <= $num_tracks ; $idx++) {
+    for($idx = 0 ; $idx <= $cddb{'num_tracks'} ; $idx++) {
         $artist_html = '' ;
-        my ($title, $artist, $composer) = ($tr_title[$idx], $tr_artist[$idx], $tr_composer[$idx]) ;
+        my ($title, $artist, $composer) = ($track_titles[$idx], $track_artists[$idx], $track_extras[$idx]) ;
         
         $composer =~ tr/\(\)//d ;
 
@@ -257,12 +283,12 @@ sub print_tracks()
             
             my $idx_1 = sprintf("%02d", $idx + 1) ;
             
-            my $mp3_path = CddbMp3::find_mp3_file($d_artist, $d_title, $idx_1, $title) ;
+            my $mp3_path = CddbMp3::find_mp3_file($cddb{'artist'}, $cddb{'title'}, $idx_1, $title) ;
             
             my $mp3_alink = '' ;
-            
+
             if ( -f $mp3_path) { 
-                $mp3_alink = '[<a href=""' . $mp3_path . '">mp3</a>]' ;
+                $mp3_alink = '[<a href="' . $mp3_path . '">mp3</a>]' ;
             } else {
                 #$mp3_alink = $mp3_path ;
             }
@@ -303,18 +329,22 @@ sub cover_source_image_path {
 }
 
 sub print_cover_image() {
+    my $cddb_ref = shift ;
+    my %cddb = %$cddb_ref ;
+    
+    my $artist = $cddb{'artist'} ;
+    my $title  = $cddb{'title'} ;
+    
     my $imgfile = $infile ;
     $imgfile =~ s|.+/|$image_dir|;
     $imgfile = $imgfile . '.png' ;
 
-    #print $imgfile . '</br>' ;
-    
     print '<div id="album_cover">' ;
     
     if(-f $imgfile) {		
         print "<img src=\"$imgfile\">" ;
     } else {
-        my $cover_source_image_path = cover_source_image_path($d_artist, $d_title) ;
+        my $cover_source_image_path = cover_source_image_path($artist, $title) ;
         
         my $cover_convert_link = '' ;
 	
@@ -338,14 +368,20 @@ sub printbr {
 }
 
 sub print_debug_window {
-    my $cover_path = cover_source_image_path($d_artist, $d_title) ;
+    my $cddb_ref = shift ;
+    my %cddb = %$cddb_ref ;
+    
+    my $artist = $cddb{'artist'} ;
+    my $title = $cddb{'title'} ;
+    
+    my $cover_path = cover_source_image_path($artist, $title) ;
     
     print '<div class="Debug"><code>' ;
 
     printbr ("cddb-format.pl -t $infile") ;
     printbr ("kate $infile &") ;
     printbr ($cover_path) ;
-    printbr ("$d_artist $d_title") ; 
+    printbr ("$artist $title") ; 
     
     print '</code></div>' ;
     
@@ -354,8 +390,7 @@ sub print_debug_window {
 sub print_footer()
 {
     if($opt_html) {
-
-	print<<EOF
+        print<<EOF
 <p>
 
 <hr>
@@ -378,6 +413,7 @@ Convert to utf-8 from <select name=from_encoding>
 </body>
 </html>
 EOF
-    }
-	else { print "\n" ; }
+    } else { 
+        print "\n" ;
+}
 }
