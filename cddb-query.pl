@@ -109,59 +109,59 @@ print $query->start_html(-title=>$doc_title,
 print '<div id="program_description">' ;
 print "<h1>$doc_title</h1>\n" ;	
 
-print "<h2>\$remote_addr:$remote_addr</h2>\n" if $g_debug ;
-print "<h2>\$remote_host:$remote_host</h2>\n" if $g_debug ;
+#print "<h2>\$remote_addr:$remote_addr</h2>\n" if $g_debug ;
+#print "<h2>\$remote_host:$remote_host</h2>\n" if $g_debug ;
 
 print '</div>' ;
 
 #run in different modes
 if (! -d $cddb_dir) {	#error
-	print "<p>Invalid \$cddb_dir: $cddb_dir\n" ;
+    print "<p>Invalid \$cddb_dir: $cddb_dir\n" ;
 } elsif (!@names) {	#no query, just input form
-	print_query_form() ;
+    print_query_form() ;
 }
 else {			#process query
-	print_query_form() ;
-	
-	my ($tag, $querystring, $query_albums) ;
-
-	my @queries = create_queries() ;
-	my $grep_cmd_query = pop @queries ;
-	
-	($tag, $querystring) = split "\t", $grep_cmd_query ;
-	
-	my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
-	my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
-	
-	print '<div id="found_tracks">' ;
-	print "<h2>Tracks</h2>" ;
-	print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
-
-	my @found_grep = grep_results($grep_cmd_tracks) ;
+    print_query_form() ;
+    
+    my ($tag, $querystring, $query_albums) ;
+    
+    my @queries = create_queries() ;
+    my $grep_cmd_query = pop @queries ;
+    
+    ($tag, $querystring) = split "\t", $grep_cmd_query ;
+    
+    my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
+    my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
+    
+    print '<div id="found_tracks">' ;
+    print "<h2>Tracks</h2>" ;
+    print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
+    
+    my @found_grep = grep_results($grep_cmd_tracks) ;
 		
-	push @found_grep, $tag ;
-	my @found_tracks = grep_output_to_trackinfo(@found_grep) ;
-	
-	foreach my $query (@queries) {
-		@found_tracks = apply_query(\@found_tracks, $query) ;
-	}
-
-	my @sorted_tracks ;
-	my $sortref = sort_func($tag) ;
-	@sorted_tracks = sort $sortref @found_tracks ;
-	
-	print_result_tracks(@sorted_tracks) ;
-	print '</div>' ;
-	
-	print '<div id="found_albums">' ;	
-	print "<h2>Albums</h2>" ;
-	print "<code>$grep_cmd_albums</code>" if $g_debug ;
-
-	my @found_albums ;
-	@found_albums = grep_results($grep_cmd_albums) ;
-	
-	print_result_albums(@found_albums) ;
-	print '</div>' ;
+    push @found_grep, $tag ;
+    my @found_tracks = grep_output_to_trackinfo(@found_grep) ;
+    
+    foreach my $query (@queries) {
+        @found_tracks = apply_query(\@found_tracks, $query) ;
+    }
+    
+    my @sorted_tracks ;
+    my $sortref = sort_func($tag) ;
+    @sorted_tracks = sort $sortref @found_tracks ;
+    
+    print_result_tracks(@sorted_tracks) ;
+    print '</div>' ;
+    
+    print '<div id="found_albums">' ;	
+    print "<h2>Albums</h2>" ;
+    print "<code>$grep_cmd_albums</code>" if $g_debug ;
+    
+    my @found_albums ;
+    @found_albums = grep_results($grep_cmd_albums) ;
+    
+    print_result_albums(@found_albums) ;
+    print '</div>' ;
 }
 
 print $query->end_html ;
@@ -172,25 +172,25 @@ print $query->end_html ;
 
 
 sub print_query_form {
-	$title     = '' if !$title ;
-	$composer  = '' if !$composer ;
-	$artist    = '' if !$artist ;
-	
-	print<<END_HERE
-<div id="query_form">
-<form method=GET class="CDDBQuery">
-	<div>
-		Title: <input name='title' value="$title">
-	</div>
-	<div>
-		Artist: <input name='artist' value="$artist">
-	</div>
-	<div>
-		Composer: <input name='composer' value="$composer">
-	</div>
-	<input type=submit value='Search'>
-</form>
-</div>
+    $title     = '' if !$title ;
+    $composer  = '' if !$composer ;
+    $artist    = '' if !$artist ;
+    
+print<<END_HERE
+  <div id="query_form">
+    <form method=GET class="CDDBQuery">
+    <div>
+  Title: <input name='title' value="$title">
+  </div>
+  <div>
+ Artist: <input name='artist' value="$artist">
+ </div>
+ <div>
+ Composer: <input name='composer' value="$composer">
+ </div>
+ <input type=submit value='Search'>
+ </form>
+ </div>
 END_HERE
 }
 

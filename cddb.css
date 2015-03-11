@@ -104,12 +104,13 @@ th.SortKey {
 
 #found_albums ul li > *,
 #found_tracks tr td > * {
-    float:left
+/*    float:left */
 }
 
 #found_albums ul li > img,
 #found_tracks tr td > img {
-
+    float: left ;
+    margin-right: 10px ;
 }
 
 #found_albums ul li > div,
