@@ -1,4 +1,4 @@
-#!/usr/bin/env perl -w
+#!/usr/bin/perl -w
 #
 # cddb-format.pl
 #
@@ -314,7 +314,7 @@ sub mp3_directory {
 
 }
 
-<<<<<<< HEAD
+
 #return the first valid path for a mp3 file in the mp3 directories
 sub find_mp3 {
     my($artist, $album, $tracknum, $title) = @_ ;
@@ -328,7 +328,7 @@ sub find_mp3 {
     $artist =~ s/[ '\?\!]/_/g ;
     $title  =~ s/[ '\?\!\/]/_/g ;
 
-    foreach my $dir (@mp3_dirs) {
+    foreach my $dir (@CddMp3::mp3_dirs) {
 	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
 	$mp3_path = $mp3_path . '.mp3' ;
 
@@ -341,8 +341,7 @@ sub find_mp3 {
     return '' ;
 }
 
-=======
->>>>>>> 6c486b32dd2d536fff512b42e425fa699c1ef90b
+
 #return the path of the unprocessed album cover image, or '' if none
 sub cover_source_image_path {
     my($artist, $album) = @_ ;

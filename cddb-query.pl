@@ -237,32 +237,9 @@ sub apply_query {
 	} @trackinfo_refs ;
 }
 
-sub query_pred_artist {
-	
-}
-
-<<<<<<< HEAD
-sub loosen_accent {
-    my $string = shift ;
-
-    my $unaccented = unac_string($string) ;
-    return $unaccented ;
-}
-
-sub grep_command_line {
-    #tags	
-=======
-#sub loosen_accent {
-#    my $string = shift ;
-#
-#    my $unaccented = unac_string($string) ;
-#    return $unaccented ;
-#}
-
 sub grep_command_line {
     #tags	
 
->>>>>>> 6c486b32dd2d536fff512b42e425fa699c1ef90b
     my($tag, $querystring, $is_album_query) = @_ ;
     
     $querystring = escape_chars(loosen_accent(loosen_punctuation($querystring))) ;
@@ -451,10 +428,8 @@ sub print_result_tracks
         my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
         
         my $album_view_anchor = $thumbnail_link . "<div><a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a></div>" ;
-<<<<<<< HEAD
         
         my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
-=======
 
         #print "The album  is [ $album ]<br/>" ;
 
@@ -475,8 +450,7 @@ sub print_result_tracks
             tokenize_anchors_title($title) .
             $mp3_anchor . 
             '</b>' ;
-        
->>>>>>> 6c486b32dd2d536fff512b42e425fa699c1ef90b
+
         my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
         my $artist_html   = tokenize_anchors_artist($artist) ;
         
