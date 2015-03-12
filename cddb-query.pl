@@ -10,7 +10,7 @@ use English ; #for $PROGRAM_NAME
 #use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
 #use Text::Unaccent::PurePerl ;
     
-use MyUtil ;
+use TokenizeNames ;
 use Cddb ;
 use CddbMp3 ;
 
@@ -105,8 +105,10 @@ print $query->start_html(-title=>$doc_title,
 				]
 			) ;
 
+
 print '<div id="program_description">' ;
-print "<h1>$doc_title</h1>\n" ;	
+
+print $query->h1($doc_title) ;
 
 #print "<h2>\$remote_addr:$remote_addr</h2>\n" if $g_debug ;
 #print "<h2>\$remote_host:$remote_host</h2>\n" if $g_debug ;
@@ -131,9 +133,9 @@ else {			#process query
     
     my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
     my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
-    
+
     print '<div id="found_tracks">' ;
-    print "<h2>Tracks</h2>" ;
+    print $query->h2('Tracks') ;
     print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
     
     my @found_grep = grep_results($grep_cmd_tracks) ;
@@ -152,13 +154,12 @@ else {			#process query
     print_result_tracks(@sorted_tracks) ;
     print '</div>' ;
     
-    print '<div id="found_albums">' ;	
-    print "<h2>Albums</h2>" ;
-    print "<code>$grep_cmd_albums</code>" if $g_debug ;
-    
     my @found_albums ;
     @found_albums = grep_results($grep_cmd_albums) ;
     
+    print '<div id="found_albums">' ;
+    print $query->h2('Albums') ;
+    print $query->code($grep_cmd_albums) if $g_debug ;    
     print_result_albums(@found_albums) ;
     print '</div>' ;
 }
@@ -519,36 +520,42 @@ sub print_result_tracks
 
 sub print_result_albums()
 {
-	my $sep = '{' ;	#something that will never appear in an artist or album name	
-	my @albums = @_ ;
-	my @sorted = sort sort_i map { local $_ = $_ ; s|(.+):DTITLE=(.+) / (.+)|$2$sep$3$sep$1| ; $_ } @albums ;    
+    my $sep = '{' ;	#something that will never appear in an artist or album name	
+    my @albums = @_ ;
+    my @sorted = sort sort_i map { local $_ = $_ ; s|(.+):DTITLE=(.+) / (.+)|$2$sep$3$sep$1| ; $_ } @albums ;    
+    
+    print "<ul>";
+    foreach my $line (@sorted) {
+        print '<li>';
 
-	print "<ul>";
-	foreach my $line (@sorted) {
-		$line =~ m|(.+)$sep(.+)$sep(.+)| ;
-		my ($artist, $album, $cddb_path) = ($1, $2, $3) ;
-		print '<li>';
+        $line =~ m|(.+)$sep(.+)$sep(.+)| ;
+        my ($artist, $album, $cddb_path) = ($1, $2, $3) ;
 
-		my $cddb = $cddb_path ;
-		$cddb =~ s/.*\/// ;
-		
-		my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+        
+        my $cddb = $cddb_path ;
+        $cddb =~ s/.*\/// ;
+        
+        my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+        
+        #print $thumbnail_path . "<br/>" ;
+        my $thumbnail_link = '' ;
+        
+        if(-f $thumbnail_path) {
+            $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
+            print $thumbnail_link ;
+        }
+        
+        my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
+        print '<div>' ;
+        print tokenize_anchors_artist($artist) ;
+        print " : <a href=\"cddb-format.pl?cddb=${cddb_genre_and_id}\">" ;
+        print $album ;
+        print '</a>' ;
+        print '</div>' ;
 
-		#print $thumbnail_path . "<br/>" ;
-		my $thumbnail_link = '' ;
-
-		if(-f $thumbnail_path) {
-		    $thumbnail_link = "<img src=\"$thumbnail_path\">" ;
-		    print $thumbnail_link ;
-		}
-		
-		my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
-    print '<div>' ;
-		print MyUtil::tokenize_anchors_artist($artist)." : <a href=\"cddb-format.pl?cddb=${cddb_genre_and_id}\">".$album ;
-    print '</div>' ;
-		print '</a>' ;
-	}
-	print "</ul>"; 
+        print '</li' ;
+    }
+    print "</ul>"; 
 }
 
 sub get_track_line_value()

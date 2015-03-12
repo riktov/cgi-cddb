@@ -1,4 +1,4 @@
-package MyUtil ;
+package TokenizeNames ;
 
 #Functions to split titles and names by punctuation and wrap each in anchors.
 #Functions to "loosen" accented characters for matching with grep.

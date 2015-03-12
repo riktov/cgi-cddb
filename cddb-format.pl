@@ -11,7 +11,7 @@
 use strict ;
 use utf8 ;
 use URI::Encode ;
-use MyUtil ;
+use TokenizeNames ;
 use CddbMp3 ;
 
 use vars qw($opt_h $opt_t $opt_a) ;
@@ -76,7 +76,10 @@ my @names = $cgi->param ;
 $is_cgi = 1 if @names ; 
 
 #my $infile = $cgi->param('keywords') ;
-my $infile = $cddb_dir . "/" .  $cgi->param('cddb') ;
+my $genre_and_cddb = $cgi->param('cddb') ;
+my $cddb_id = $genre_and_cddb ;
+$cddb_id =~ s|.+/|| ;
+my $infile = $cddb_dir . "/" .  $genre_and_cddb ;
 
 #for command-line
 if (!$infile) {
@@ -105,8 +108,6 @@ if (-l $infile) {
     #print STDERR "The linked file is $infile\n" ;
 	}
 
-my $cddb_id = $infile ;
-$cddb_id =~ s|.+/|| ;
 
 #read cddb here 
 my %cddb_info = read_cddb($infile) ;
@@ -265,19 +266,19 @@ sub print_tracks()
         $composer =~ tr/\(\)//d ;
 
         if ($artist ne '') {
-            my $links = MyUtil::tokenize_anchors_artist($artist) ;
+            my $links = TokenizeNames::tokenize_anchors_artist($artist) ;
             $artist_html = " - $links" ;
             $artist = "\t$artist" ; 	#for console mode
         } 
         
-        my $composer_html = MyUtil::tokenize_anchors_composer($composer) ;
+        my $composer_html = TokenizeNames::tokenize_anchors_composer($composer) ;
         
         if ($composer_html ne '') {
             $composer_html = " <i><small>($composer_html)</small></i>" ;
         }
         
         if($opt_html) {
-            $title_html = '<b>' . MyUtil::tokenize_anchors_title($title) . '</b>' ;
+            $title_html = '<b>' . TokenizeNames::tokenize_anchors_title($title) . '</b>' ;
 
             my $idx_1 = sprintf("%02d", $idx + 1) ;
             
@@ -333,9 +334,7 @@ sub print_cover_image() {
     my $artist = $cddb{artist} ;
     my $title  = $cddb{title} ;
     
-    my $imgfile = $infile ;
-    $imgfile =~ s|.+/|$image_dir|;
-    $imgfile = $imgfile . '.png' ;
+    my $imgfile = $image_dir . $cddb_id . '.png' ;
 
     print '<div id="album_cover">' ;
     
@@ -406,7 +405,7 @@ Convert to utf-8 from <select name=from_encoding>
 
 <ul>
 	<li><a href="cddb-tartist.pl?cddb_path=$infile">Convert to TARTIST format</a>
-	<li><a href="cddb-collection?$infile">Add to collection</a>
+	<li><a href="cddb-collection.pl?cddb=$genre_and_cddb">Add to collection</a>
 	<li><a href="cddb-query.pl">Return to Query</a>
 </ul>
 
