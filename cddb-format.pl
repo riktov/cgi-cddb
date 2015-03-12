@@ -417,6 +417,8 @@ sub print_debug_window {
 sub print_footer()
 {
     if($opt_html) {
+	my($artist, $title) = ($cddb_info{artist}, $cddb_info{title}) ;
+	
         print<<EOF
 <p>
 
@@ -433,7 +435,7 @@ Convert to utf-8 from <select name=from_encoding>
 
 <ul>
 	<li><a href="cddb-tartist.pl?cddb_path=$infile">Convert to TARTIST format</a>
-	<li><a href="cddb-collection.pl?cddb=$genre_and_cddb">Add to collection</a>
+	<li><a href="cddb-collection.pl?cddb=$genre_and_cddb&artist=$artist&title=$title">Add to collection</a>
 	<li><a href="cddb-query.pl">Return to Query</a>
 </ul>
 
