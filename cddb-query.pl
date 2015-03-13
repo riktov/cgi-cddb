@@ -2,13 +2,15 @@
 # cddb-query.pl
 # CDDB search
 
-use CGI ;
-use strict ;
-use English ; #for $PROGRAM_NAME
-#use utf8 ;
-
-
 #use lib '/opt/local/lib/perl5/site_perl/5.16.3' ;
+
+use strict ;
+
+use CGI ;
+use English ; #for $PROGRAM_NAME
+use Config::Simple ;
+
+#use utf8 ;
 #use Text::Unaccent::PurePerl ;
     
 use TokenizeNames ;
@@ -40,9 +42,9 @@ my $IDX_COMPOSER = 2 ;
 
 #globals
 my $cddb_dir = '/home/r/riktov/.cddb/' ;
-my $cddb_image_dir = "../cddb_images/" ;
-my $cddb_image_thumbs_dir = "../cddb_images/thumbs/" ;
-my $cddb_image_favicon_dir = "../cddb_images/favicon/" ;
+my $image_dir = "../cddb_images/" ;
+my $image_thumbs_dir = "../cddb_images/thumbs/" ;
+my $image_favicon_dir = "../cddb_images/favicon/" ;
 my $rcfilepath = '.cddbrc' ;
 
 my %composer_of ;
@@ -53,18 +55,10 @@ my $g_is_admin = 0 ;
 
 
 ##############################################################
-# main
+# main starts here
 
-if (open RCFILE, $rcfilepath) {
-	my @rc = <RCFILE> ;
-	
-	foreach my $line (@rc) {
-		if ($line =~ /cddb_dir=(.+)/) {
-			$cddb_dir=$1 ;
-		}
-	}
-	close RCFILE ;
-}
+my $cfg = new Config::Simple('.cddbrc') ;
+$cddb_dir = $cfg->param('cddb_dir') ;
 
 CddbMp3::loadrc() ;
 
@@ -72,32 +66,31 @@ CddbMp3::loadrc() ;
 my $cgi_url = $PROGRAM_NAME ;
 $cgi_url =~ s|(.*/)|| ;
 
-
-###############################
 # Get the CGI variables
-my $query = CGI->new() ;
-my @names = $query->param ;
+my $cgi = CGI->new() ;
 
-my $server_name = $query->server_name() ;
-my $remote_addr = $query->remote_addr() ;
-my $remote_host = $query->remote_host() ;
+my @names = $cgi->param ;
+
+my $server_name = $cgi->server_name() ;
+my $remote_addr = $cgi->remote_addr() ;
+my $remote_host = $cgi->remote_host() ;
 
 $g_is_admin = 1 if $remote_addr eq 'localhost' ;
 
-my $artist   = $query->param('artist') ;
-my $title    = $query->param('title') ;
-my $composer = $query->param('composer') ;
-my $sortby   = $query->param('sortby') ;
+my $artist   = $cgi->param('artist') ;
+my $title    = $cgi->param('title') ;
+my $composer = $cgi->param('composer') ;
+my $sortby   = $cgi->param('sortby') ;
 
-$query->charset('utf-8');
+$cgi->charset('utf-8');
 
 
 my $doc_title = "CDDB Query" ;
 
 ###############################
 # start output here
-print $query->header ;
-print $query->start_html(-title=>$doc_title,
+print $cgi->header ;
+print $cgi->start_html(-title=>$doc_title,
 			 -style=>'../css/cddb.css',
 			 -script=>[
 					{ -type => 'text/javascript',
@@ -109,7 +102,7 @@ print $query->start_html(-title=>$doc_title,
 
 print '<div id="program_description">' ;
 
-print $query->h1($doc_title) ;
+print $cgi->h1($doc_title) ;
 
 #print "<h2>\$remote_addr:$remote_addr</h2>\n" if $g_debug ;
 #print "<h2>\$remote_host:$remote_host</h2>\n" if $g_debug ;
@@ -117,14 +110,11 @@ print $query->h1($doc_title) ;
 print '</div>' ;
 
 #run in different modes
-if (! -d $cddb_dir) {	#error
-    print "<p>Invalid \$cddb_dir: $cddb_dir\n" ;
-} elsif (!@names) {	#no query, just input form
+if (!@names) {	#no query, just input form
     print_query_form() ;
-}
-else {			#process query
+} else {			#process query
     print_query_form() ;
-    
+
     my ($tag, $querystring, $query_albums) ;
     
     my @queries = create_queries() ;
@@ -136,7 +126,7 @@ else {			#process query
     my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
 
     print '<div id="found_tracks">' ;
-    print $query->h2('Tracks') ;
+    print $cgi->h2('Tracks') ;
     print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
     
     my @found_grep = grep_results($grep_cmd_tracks) ;
@@ -159,13 +149,13 @@ else {			#process query
     @found_albums = grep_results($grep_cmd_albums) ;
     
     print '<div id="found_albums">' ;
-    print $query->h2('Albums') ;
-    print $query->code($grep_cmd_albums) if $g_debug ;    
+    print $cgi->h2('Albums') ;
+    print $cgi->code($grep_cmd_albums) if $g_debug ;    
     print_result_albums(@found_albums) ;
     print '</div>' ;
 }
 
-print $query->end_html ;
+print $cgi->end_html ;
 
 ##### end of main
 ##############################################################
@@ -288,7 +278,7 @@ sub output_list_args {
 	print "<ol>\n" ;
 	
 	foreach my $name (@names) {
-		my $val = $query->param($name) ;
+		my $val = $cgi->param($name) ;
 		print "<li>$name : $val\n" ;
 	}
 	print "</ol>\n" ;
@@ -417,7 +407,7 @@ sub print_result_tracks
         my $cddb = $cddb_path ;
         $cddb =~ s|.+/|| ;
         
-        my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+        my $thumbnail_path = $image_thumbs_dir . $cddb . '_th.png';
         
         #print $thumbnail_path ;
         my $thumbnail_link = '' ;
@@ -430,9 +420,6 @@ sub print_result_tracks
         
         my $album_view_anchor = $thumbnail_link . "<div><a href=cddb-format.pl?cddb=$cddb_genre_and_id>$album</a></div>" ;
         
-        my $title_html    = '<b>'.tokenize_anchors_title($title).'</b>' ;
-
-        #print "The album  is [ $album ]<br/>" ;
 
         my @artist_and_album = split(' / ', $album) ;
 
@@ -466,7 +453,8 @@ sub print_result_tracks
             "<td>$composer_html</td>" .
             "<td>$artist_html</td>" .
             "<td>$checkbox$album_view_anchor</td>" .
-            "<td>$track_num</td></tr>" ;
+            "<td>$track_num</td>" . 
+            '</tr>' ;
         
         
         my $uniq = 0 ;	#Hack
@@ -527,7 +515,7 @@ sub print_result_albums()
         my $cddb = $cddb_path ;
         $cddb =~ s/.*\/// ;
         
-        my $thumbnail_path = $cddb_image_thumbs_dir . $cddb . '_th.png';
+        my $thumbnail_path = $image_thumbs_dir . $cddb . '_th.png';
         
         #print $thumbnail_path . "<br/>" ;
         my $thumbnail_link = '' ;
@@ -545,7 +533,7 @@ sub print_result_albums()
         print '</a>' ;
         print '</div>' ;
 
-        print '</li' ;
+        print '</li>' ;
     }
     print "</ul>"; 
 }

@@ -4,7 +4,8 @@ require Exporter ;
 @ISA = qw(Exporter) ;
 
 @EXPORT=qw(
-	genre_and_id
+genre_and_id
+artist_and_title
 ) ;
 
 sub genre_and_id {
@@ -12,6 +13,21 @@ sub genre_and_id {
 	$fullpath =~ s|.*/(.+/.+)|$1| ;
 
 	return $fullpath ;
+}
+
+sub artist_and_title {
+    my $fullpath = shift ;
+    
+    open (INFILE, $fullpath) or die "Can't open file $fullpath\n";
+
+    while ($line = <INFILE>) {
+        if ($line =~ /DTITLE=(.+) \/ (.+)/) {
+            $artist = $1 ;
+            $title  = $2 ;      
+            return ($artist, $title) ;
+        }
+    }
+    return ("UNKNOWN", "UNKNOWN") ;
 }
 
 #################################################

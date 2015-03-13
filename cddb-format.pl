@@ -10,7 +10,9 @@
 
 use strict ;
 use utf8 ;
-use URI::Encode ;
+use URL::Encode ;
+use Config::Simple ;
+
 use TokenizeNames ;
 use CddbMp3 ;
 
@@ -27,17 +29,14 @@ sub print_tracks ;
 sub print_debug_window ;
 sub print_footer ;
 sub print_cover_image ;
-sub tokenize_anchors_title ;
-#sub find_mp3 ;
 sub printbr ;
 
 #http://localhost/~paul/music/Bill_Evans/Yesterday_I_Heard_The_Rain/03%20-%20My_Romance.mp3
 
-##DEFAULT GLOBALS
+## GLOBALS
 my $is_cgi = 0 ;
-my $cddb_dir = "/Users/paul/.cddbslave" ;
-my $rcfilepath = '.cddbrc' ;
 
+my $cddb_dir = "/Users/paul/.cddbslave" ;
 my $image_dir = "../cddb_images/" ;
 my $album_covers_dir="../album_covers/" ;
 #my @mp3_dirs = ('../ext_music/', '../music/') ;
@@ -48,19 +47,11 @@ my $opt_html = 1 ;
 
 
 ################
-## MAIN
-#main starts here
+## main starts here
 
-if (open RCFILE, $rcfilepath) {
-	my @rc = <RCFILE> ;
-	
-	foreach my $line (@rc) {
-		if ($line =~ /cddb_dir=(.+)/) {
-			$cddb_dir=$1 ;
-		}
-	}
-	close RCFILE ;
-}
+my $cfg = new Config::Simple('.cddbrc') ;
+
+$cddb_dir = $cfg->param('cddb_dir') ;
 
 # command-line options
 getopts('aht') ;
@@ -149,8 +140,9 @@ print_cover_image(\%cddb_info) if $opt_html ;
 print_debug_window(\%cddb_info) ;
 print_footer();
 
+### end of main()
 ##############################################################################
-#end of main()
+
 
 sub read_cddb
 	{
@@ -164,8 +156,7 @@ sub read_cddb
 	my $line ;
 	while ($line = <INFILE>) {
 		if ($line =~ /DTITLE=(.+) \/ (.+)/) {
-			$artist = $1 ;
-			$title  = $2 ;      
+			($artist, $title) = ($1, $2) ;      
 			if ($artist =~/^Various/i) {
 				$is_compilation = 1 ;
 				}
@@ -209,7 +200,7 @@ sub print_artist_and_title()
 {
     my $cddb_ref = shift ;
     my %cddb = %$cddb_ref ;
-    
+
     my $artist = $cddb{artist} ;
     my $title  = $cddb{title} ;
     
@@ -218,17 +209,22 @@ sub print_artist_and_title()
 
     if ($opt_html) {
         $d_artist_link = tokenize_anchors_artist($artist) ;
-        $d_artist_fmt = "<h2>$d_artist_link</h2>\n" ;
+        $d_artist_fmt = $cgi->h2($d_artist_link) ;
         
         $d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
         
-        $d_title_fmt  = "<h1>$title</h1>" ;
-        
-        print '<div id="disc_title">';
-        print "$d_artist_fmt" ;
-        print "<div><img src=\"${d_image_thumb}\" />" ;		
-        print "$d_title_fmt\n" ;
-        print '</div></div>' ;
+        $d_title_fmt  = $cgi->h1($title) ;
+
+        #some of that confusing CGI-perl tag-fu
+        print $cgi->div(
+            {id=>"disc_title"},
+            $d_artist_fmt,
+            $cgi->div(
+                $cgi->img(
+                    {src=>"${d_image_thumb}"}
+                ),
+                $d_title_fmt)
+            );
     } else {
         $d_artist_fmt = "#${artist} - " ;
         $d_title_fmt  = $title ;
@@ -308,39 +304,6 @@ sub print_tracks()
     }
 }
 
-sub mp3_directory {
-    my($artist, $album) = @_ ;
-
-}
-
-
-#return the first valid path for a mp3 file in the mp3 directories
-sub find_mp3 {
-    my($artist, $album, $tracknum, $title) = @_ ;
-
-    #return 1 ;
-    #mogrify the strings
-#    my $tracknum_str = sprintf("%02d", $tracknum + 1) ;
-#    my $uri = URI::Encode->new( { encode_reserved => 0 } );
-
-    $album  =~ s/[ '\?\!]/_/g ;
-    $artist =~ s/[ '\?\!]/_/g ;
-    $title  =~ s/[ '\?\!\/]/_/g ;
-
-    foreach my $dir (@CddMp3::mp3_dirs) {
-	my $mp3_path = "${dir}$artist/$album/$tracknum - $title" ;
-	$mp3_path = $mp3_path . '.mp3' ;
-
-	print $mp3_path . '<br/>' ;
-	if (-f $mp3_path) {
-	    print "Found $mp3_path" ;
-	    return $mp3_path ;
-	}
-    }
-    return '' ;
-}
-
-
 #return the path of the unprocessed album cover image, or '' if none
 sub cover_source_image_path {
     my($artist, $album) = @_ ;
@@ -417,8 +380,13 @@ sub print_debug_window {
 sub print_footer()
 {
     if($opt_html) {
-	my($artist, $title) = ($cddb_info{artist}, $cddb_info{title}) ;
-	
+        my($artist, $title) = ($cddb_info{artist}, $cddb_info{title}) ;
+        
+#        my $encoder = UR::Encode->new();
+        
+        $artist = URL::Encode::url_encode($artist) ;
+        $title  = URL::Encode::url_encode($title) ;
+        
         print<<EOF
 <p>
 

@@ -83,14 +83,17 @@ th.SortKey {
     margin-right: 20px
 }
 
-#track_listing {
-
-}
-
 #track_listing ol {
 	margin-top: 0 ;
 }
 
+
+#found_albums,
+#found_tracks {
+    border: solid thin black ;
+    padding: 10px ;
+    margin-top: 10px ;
+}
 
 #found_albums ul{
 	list-style: none ;
@@ -116,9 +119,12 @@ th.SortKey {
 #found_albums ul li > div,
 #found_tracks tr td > div {
     margin-left: 10px ;
-    margin-top: 0.5em
+
 }
 
+#found_albums ul li > div {
+    margin-top: 0.5em
+}
 .Debug {
     padding: 10px ;
     background-color:black ;
