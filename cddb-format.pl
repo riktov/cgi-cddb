@@ -12,6 +12,7 @@ use strict ;
 use utf8 ;
 use URL::Encode ;
 use Config::Simple ;
+use File::Basename ;
 
 use TokenizeNames ;
 use CddbMp3 ;
@@ -68,8 +69,8 @@ $is_cgi = 1 if @names ;
 
 #my $infile = $cgi->param('keywords') ;
 my $genre_and_cddb = $cgi->param('cddb') ;
-my $cddb_id = $genre_and_cddb ;
-$cddb_id =~ s|.+/|| ;
+my $discid = (basename($genre_and_cddb))[0] ;
+
 my $infile = $cddb_dir . "/" .  $genre_and_cddb ;
 
 #for command-line
@@ -118,7 +119,7 @@ if($opt_html) {
         -title=>"$title - $artist", 
         -style=>'../css/cddb.css',
         -head=> $cgi->Link({
-            -href=>"../cddb_images/favicon/${cddb_id}_favicon.png",
+            -href=>"../cddb_images/favicon/${discid}_favicon.png",
             -type=>'image/png',
             -rel=>'icon',
                            }),
@@ -145,56 +146,54 @@ print_footer();
 
 
 sub read_cddb
-	{
-	my $filepath = shift ;
-	open (INFILE, $filepath) or die "Can't open file $filepath\n";
-	
-	my ($artist, $title, $num_tracks, $num, $track, $is_compilation) ;
-  
-  my %cddb_disc ;
-  my (@track_titles, @track_artists, @track_extras) ;
-	my $line ;
-	while ($line = <INFILE>) {
-		if ($line =~ /DTITLE=(.+) \/ (.+)/) {
-			($artist, $title) = ($1, $2) ;      
-			if ($artist =~/^Various/i) {
-				$is_compilation = 1 ;
-				}
-			}
-	
-		if ($line =~ /TTITLE(\d+)=(.+)/) {
-        ($num, $track) = ($1, $2) ;
-        $track_titles[$num] = $track ;
-        $track_artists[$num] = '' ;
-        $num_tracks = $num ; 			
-    }
+{
+    my $filepath = shift ;
+    open (INFILE, $filepath) or die "Can't open file $filepath\n";
     
-		if ($line =~ /TARTIST(\d+)=(.*)/) {
-        $num = $1 ;
-        $track = $2 ;
-        $track_artists[$num] = $track ;
-    }
+    my ($artist, $title, $num_tracks, $num, $track, $is_compilation) ;
     
-		if ($line =~ /EXTT(\d+)=(.*)/) {
-        $num = $1 ;
-        $track = $2 ;
-        $track_extras[$num] = $track ;
-    }	
-  }
-	$artist or die "Couldn't parse disc artist in $infile\n" ;
-	
-	close INFILE ;
-
-  $cddb_disc{artist} = $artist ;
-  $cddb_disc{title} = $title ;
-  $cddb_disc{num_tracks} = $num_tracks ;
-  $cddb_disc{is_compilation} = $is_compilation ;
-  $cddb_disc{track_titles} = \@track_titles ;
-  $cddb_disc{track_artists} = \@track_artists ;
-  $cddb_disc{track_extras} = \@track_extras ;
-  
-  return %cddb_disc ;
+    my %cddb_disc ;
+    my (@track_titles, @track_artists, @track_extras) ;
+    my $line ;
+    while ($line = <INFILE>) {
+	if ($line =~ /DTITLE=(.+) \/ (.+)/) {
+	    ($artist, $title) = ($1, $2) ;      
+	    if ($artist =~/^Various/i) {
+		$is_compilation = 1 ;
+	    }
 	}
+	
+	if ($line =~ /TTITLE(\d+)=(.+)/) {
+	    ($num, $track) = ($1, $2) ;
+	    $track_titles[$num] = $track ;
+	    $track_artists[$num] = '' ;
+	    $num_tracks = $num ; 			
+	}
+	
+	if ($line =~ /TARTIST(\d+)=(.*)/) {
+	    ($num, $track) = ($1, $2) ;
+	    $track_artists[$num] = $track ;
+	}
+	
+	if ($line =~ /EXTT(\d+)=(.*)/) {
+	    ($num, $track) = ($1, $2) ;
+	    $track_extras[$num] = $track ;
+	}	
+    }
+    $artist or die "Couldn't parse disc artist in $infile\n" ;
+    
+    close INFILE ;
+    
+    $cddb_disc{artist} = $artist ;
+    $cddb_disc{title} = $title ;
+    $cddb_disc{num_tracks} = $num_tracks ;
+    $cddb_disc{is_compilation} = $is_compilation ;
+    $cddb_disc{track_titles} = \@track_titles ;
+    $cddb_disc{track_artists} = \@track_artists ;
+    $cddb_disc{track_extras} = \@track_extras ;
+    
+    return %cddb_disc ;
+}
 
 sub print_artist_and_title()
 {
@@ -211,7 +210,7 @@ sub print_artist_and_title()
         $d_artist_link = tokenize_anchors_artist($artist) ;
         $d_artist_fmt = $cgi->h2($d_artist_link) ;
         
-        $d_image_thumb = $image_dir . "thumbs/" . $cddb_id . "_th.png" ;
+        $d_image_thumb = $image_dir . "thumbs/" . $discid . "_th.png" ;
         
         $d_title_fmt  = $cgi->h1($title) ;
 
@@ -276,9 +275,9 @@ sub print_tracks()
         if($opt_html) {
             $title_html = '<b>' . TokenizeNames::tokenize_anchors_title($title) . '</b>' ;
 
-            my $idx_1 = sprintf("%02d", $idx + 1) ;
-            
-            my $mp3_path = CddbMp3::find_mp3_file($cddb{artist}, $cddb{title}, $idx_1, $title) ;
+            my $tracknum_str_1 = sprintf("%02d", $idx + 1) ;
+
+            my $mp3_path = CddbMp3::find_mp3_file($cddb{artist}, $cddb{title}, $tracknum_str_1, $title) ;
             
             my $mp3_alink = '' ;
 
@@ -309,7 +308,7 @@ sub cover_source_image_path {
     my($artist, $album) = @_ ;
 
     my $path = "${artist}-${album}.jpg" ;
-    $path =~ tr|[ '\&+;]|_| ;#replace illegal path characters
+    $path =~ tr|[ '\&+;/#]|_| ;#replace illegal path characters
 
     #use utf8?
     #$path =~ tr/[ô]/[o]/ ;#replace extended characters, not working with multiple characters
@@ -325,7 +324,7 @@ sub print_cover_image() {
     my $artist = $cddb{artist} ;
     my $title  = $cddb{title} ;
     
-    my $imgfile = $image_dir . $cddb_id . '.png' ;
+    my $imgfile = $image_dir . $discid . '.png' ;
 
     print '<div id="album_cover">' ;
     

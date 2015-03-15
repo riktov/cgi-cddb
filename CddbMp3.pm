@@ -40,19 +40,19 @@ sub find_mp3_file {
 #    my $uri = URI::Encode->new( { encode_reserved => 0 } );
 
     #We want to filter out the forward slash here, but leave it in for the actual path
-    #$album  = as_legal_filepath($album) ;
-    #$artist = as_legal_filepath($artist) ;
-    #$title  = as_legal_filepath($title) ;
+    $album  = as_legal_filepath($album) ;
+    $artist = as_legal_filepath($artist) ;
+    $title  = as_legal_filepath($title) ;
 
 #    print ("find_mp3_file()") ;
 #    print @mp3_dirs ;
 
-    my $mp3_path ;
+    my $mp3_path = '';
     
     foreach my $dir (@mp3_dirs) {
         $mp3_path = "${dir}/$artist/$album/$tracknum_1based ${title}.mp3" ;
 
-        #print "$mp3_path<br/>" ;
+        print "$mp3_path<br/>" ;
         
         if (-f $mp3_path) { 
             return $mp3_path ;

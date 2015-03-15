@@ -18,7 +18,7 @@ sub setup_db {
     my @drivers = DBI->available_drivers ;
     #print join('<br/>', @drivers) ;
 
-    my($user, $password, $db, $host) = ('paul', 'zard-blend', 'paul_cddb', '127.0.0.1' ) ;
+    my($user, $password, $db, $host) = ('paul', 'ami-yumi-96', 'paul_cddb', 'localhost' ) ;
     
     $dbh = DBI->connect("DBI:mysql:database=$db;host=$host",
                            $user, $password, {RaiseError => 1});
@@ -63,6 +63,7 @@ my $cddb_genre_and_id = $cgi->param('cddb') ;
 #my $title   = $cgi->param('title') ;
 
 setup_db() ;
+
 my $cddb_id = $cddb_genre_and_id ;
 $cddb_id =~ s|.+/|| ;
 

@@ -85,10 +85,11 @@ my $sortby   = $cgi->param('sortby') ;
 $cgi->charset('utf-8');
 
 
-my $doc_title = "CDDB Query" ;
 
 ###############################
 # start output here
+my $doc_title = "CDDB Query" ;
+
 print $cgi->header ;
 print $cgi->start_html(-title=>$doc_title,
 			 -style=>'../css/cddb.css',

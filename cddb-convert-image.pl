@@ -1,9 +1,10 @@
-#!/opt/local/bin/perl -w
+#!/usr/bin/perl -w
 # CGI to convert image file found in a separate directory to cddb web image 
 
 use strict ;
 use CGI ;
 use Image::Magick ;
+use File::Basename ;
 
 use Cddb ;
 
@@ -23,8 +24,11 @@ $cddb_path = $cgi->param('cddb') ;
 
 #($cover_path, $cddb_path) = @ARGV ;
 
-my $cddb_id = $cddb_path ;
-$cddb_id =~ s|.+/|| ;
+print STDERR $cddb_path ;
+
+
+my @parts = fileparse($cddb_path) ;
+my $discid = $parts[0] ;
 
 my $image_in = $cover_path ;
 my $image_out ;
@@ -38,7 +42,7 @@ my $result ;
 $num_images = $image->Read($image_in)  ;
 print STDERR "The number of images read is: $num_images\n";
 
-$image_out = $cddb_image_dir . $cddb_id . '.png' ;
+$image_out = $cddb_image_dir . $discid . '.png' ;
 print STDERR "The main file is: $image_out\n";
 $image->Resize(geometry=>'300x300^') ;
 $result = $image->Write($image_out)  ;
@@ -46,7 +50,7 @@ print STDERR "The result of Write is: $result\n" ;
 
 #thumb
 #$num_images = $image->Read($image_in)  ;
-$image_out = $cddb_image_dir . "thumbs/" . $cddb_id . '_th.png' ;
+$image_out = $cddb_image_dir . "thumbs/" . $discid . '_th.png' ;
 #print STDERR "The thumb file is:" . $image_out ;
 $image->Resize(geometry=>'32x32^') ;
 $result = $image->Write($image_out)  ;
@@ -54,7 +58,7 @@ $result = $image->Write($image_out)  ;
 
 #favicon
 #$num_images = $image->Read($image_in)  ;
-$image_out = $cddb_image_dir . "favicon/" . $cddb_id . '_favicon.png' ;
+$image_out = $cddb_image_dir . "favicon/" . $discid . '_favicon.png' ;
 $image->Resize(geometry=>'16x16^') ;
 $image->Write($image_out)  ;
 
@@ -63,8 +67,8 @@ undef $image ;
 #print "Converted $image_in to $image_out" ;
 #print '<p><a href="cddb-format.pl?' . $cddb_path . '">Return</a></p>' ;
 
-my $cddb_genre_and_id = Cddb::genre_and_id($cddb_path) ;
-exit print $cgi->redirect('cddb-format.pl?cddb=' . $cddb_genre_and_id );
+exit print $cgi->redirect($cgi->referer());
+
 
 #####################
 ## output only on error
