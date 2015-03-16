@@ -13,20 +13,23 @@ use utf8 ;
 use URL::Encode ;
 use Config::Simple ;
 use File::Basename ;
+use Getopt::Std ;
+use CGI '-utf8';
+use DBI ;
 
+use Cddb ;
 use TokenizeNames ;
 use CddbMp3 ;
 
 use vars qw($opt_h $opt_t $opt_a) ;
-use Getopt::Std ;
 
-use CGI '-utf8';
 
 #Declarations
 sub read_cddb_stdin ;
 sub print_header ;
 sub print_artist_and_title ;
 sub print_tracks ;
+sub print_collection_status ;
 sub print_debug_window ;
 sub print_footer ;
 sub print_cover_image ;
@@ -37,11 +40,11 @@ sub printbr ;
 ## GLOBALS
 my $is_cgi = 0 ;
 
+#default configuration
 my $cddb_dir = "/Users/paul/.cddbslave" ;
 my $image_dir = "../cddb_images/" ;
 my $album_covers_dir="../album_covers/" ;
 #my @mp3_dirs = ('../ext_music/', '../music/') ;
-
 
 #options
 my $opt_html = 1 ;
@@ -53,6 +56,7 @@ my $opt_html = 1 ;
 my $cfg = new Config::Simple('.cddbrc') ;
 
 $cddb_dir = $cfg->param('cddb_dir') ;
+$image_dir = $cfg->param('image_dir') ;
 
 # command-line options
 getopts('aht') ;
@@ -138,6 +142,7 @@ CddbMp3::loadrc() ;
 print_artist_and_title(\%cddb_info);
 print_tracks(\%cddb_info);
 print_cover_image(\%cddb_info) if $opt_html ;
+print_collection_status(\%cddb_info) ;
 print_debug_window(\%cddb_info) ;
 print_footer();
 
@@ -183,7 +188,8 @@ sub read_cddb
     $artist or die "Couldn't parse disc artist in $infile\n" ;
     
     close INFILE ;
-    
+
+    $cddb_disc{discid} = (basename($filepath))[0] ;
     $cddb_disc{artist} = $artist ;
     $cddb_disc{title} = $title ;
     $cddb_disc{num_tracks} = $num_tracks ;
@@ -336,7 +342,7 @@ sub print_cover_image() {
         my $cover_convert_link = '' ;
 	
         if(-f $cover_source_image_path) {
-            #print $fixed_name ;
+            print $imgfile . "<br/>" ;
             $cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path}&cddb=${infile}>Convert Cover Image</a>" ;
             print $cover_convert_link ;
         } else {
@@ -352,6 +358,26 @@ sub print_cover_image() {
 sub printbr {
     my $line = shift ;
     print $line . '<br />' ;
+}
+
+sub print_collection_status {
+    print '<div id="collection_status">' ;
+    my $cddb_ref = shift ;
+    my %cddb = %$cddb_ref ;
+
+    my $dbh = setup_mysql($cfg) ;
+
+    my $sql_statement = "SELECT * FROM `T_CDs` WHERE `CD_ID`=?" ;
+    my $sth = $dbh->prepare($sql_statement) ;
+    $sth->execute($cddb{discid}) ;
+
+    my $rowref ;
+    while($rowref = $sth->fetchrow_hashref()) {
+        my %row = %$rowref ;
+        print("You own the disc $row{CD_ID}\n") ;
+    }
+
+    print '</div>' ;
 }
 
 sub print_debug_window {

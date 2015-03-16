@@ -3,6 +3,8 @@
 
 use strict ;
 use CGI ;
+use CGI::Carp ;
+use CGI::Carp qw(fatalsToBrowser warningsToBrowser);
 use Image::Magick ;
 use File::Basename ;
 
@@ -12,6 +14,7 @@ use Cddb ;
 my $cddb_image_dir = "../cddb_images/" ;
 #my $cddb_image_dir_thumb   = "${cddb_image_dir}thumbs/" ;
 #my $cddb_image_dir_favicon = "${cddb_image_dir}favicon/" ;
+
 my $opt_cgi = 1 ;
 
 my $cgi = new CGI ;
@@ -24,51 +27,46 @@ $cddb_path = $cgi->param('cddb') ;
 
 #($cover_path, $cddb_path) = @ARGV ;
 
-print STDERR $cddb_path ;
-
-
 my @parts = fileparse($cddb_path) ;
 my $discid = $parts[0] ;
 
 my $image_in = $cover_path ;
-my $image_out ;
+my $image_out = '' ;
 
 #convert image
 my $image = Image::Magick->new ;
-my $num_images ;
+
 my $result ;
 
-#main image
-$num_images = $image->Read($image_in)  ;
-print STDERR "The number of images read is: $num_images\n";
+my $num_images = $image->Read($image_in)  ; #return value from Read() and Write() are unreliable
 
-$image_out = $cddb_image_dir . $discid . '.png' ;
-print STDERR "The main file is: $image_out\n";
-$image->Resize(geometry=>'300x300^') ;
-$result = $image->Write($image_out)  ;
-print STDERR "The result of Write is: $result\n" ;
+print STDERR "The number of images read from $image_in is: ${num_images}\n";
 
-#thumb
-#$num_images = $image->Read($image_in)  ;
-$image_out = $cddb_image_dir . "thumbs/" . $discid . '_th.png' ;
-#print STDERR "The thumb file is:" . $image_out ;
-$image->Resize(geometry=>'32x32^') ;
-$result = $image->Write($image_out)  ;
-#print STDERR "The result of Write is:" . $result ;
+my %image_specs_of =
+(
+    main => ['', '', 300],
+    thumbs => ['thumbs/', '_th', 32],
+    favicon => ['favicon/', '_favicon', 16]
+) ;
 
-#favicon
-#$num_images = $image->Read($image_in)  ;
-$image_out = $cddb_image_dir . "favicon/" . $discid . '_favicon.png' ;
-$image->Resize(geometry=>'16x16^') ;
-$image->Write($image_out)  ;
+while(my($spec_label, $specs_ref) = each %image_specs_of) {
+    my @specs = @$specs_ref ;
+
+    my ($subdir, $suffix, $width) = @specs ;
+    
+    my $image_out = $cddb_image_dir . $subdir . $discid . $suffix . '.png' ;
+    print STDERR "The $spec_label file is: $image_out\n";
+
+    my $dimensions = "${width}x${width}^" ;
+    
+    $image->Resize(geometry=>$dimensions) ;
+    $result = $image->Write($image_out)  ;
+
+    print STDERR "[$result] images written to $image_out.\n" ;
+}
 
 undef $image ;
-
-#print "Converted $image_in to $image_out" ;
-#print '<p><a href="cddb-format.pl?' . $cddb_path . '">Return</a></p>' ;
-
 exit print $cgi->redirect($cgi->referer());
-
 
 #####################
 ## output only on error
