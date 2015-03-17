@@ -265,9 +265,9 @@ sub print_tracks()
         $composer =~ tr/\(\)//d ;        
         
         if($opt_html) {
-            my $title_html = '<b>' . TokenizeNames::tokenize_anchors_title($title) . '</b>' ;
-            my $artist_html = TokenizeNames::tokenize_anchors_artist($artist) ;
-            my $composer_html = TokenizeNames::tokenize_anchors_composer($composer) ;
+            my $title_html = '<b>' . tokenize_anchors_title($title) . '</b>' ;
+            my $artist_html = tokenize_anchors_artist($artist) ;
+            my $composer_html = tokenize_anchors_composer($composer) ;
 
             if($title_html ne '') { 
                 $title_html = "<b>$title_html</b>"

@@ -42,6 +42,7 @@ my $num_images = $image->Read($image_in)  ; #return value from Read() and Write(
 
 print STDERR "The number of images read from $image_in is: ${num_images}\n";
 
+#TODO this doesn't need to be a hash, it can just be an array of arrays
 my %image_specs_of =
 (
     main => ['', '', 300],
