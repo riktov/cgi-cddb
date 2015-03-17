@@ -60,8 +60,6 @@ my $g_is_admin = 0 ;
 my $cfg = new Config::Simple('.cddbrc') ;
 $cddb_dir = $cfg->param('cddb_dir') ;
 
-CddbMp3::loadrc() ;
-
 #who am I?
 my $cgi_url = $PROGRAM_NAME ;
 $cgi_url =~ s|(.*/)|| ;
@@ -91,14 +89,14 @@ $cgi->charset('utf-8');
 my $doc_title = "CDDB Query" ;
 
 print $cgi->header ;
-print $cgi->start_html(-title=>$doc_title,
-			 -style=>'../css/cddb.css',
-			 -script=>[
-					{ -type => 'text/javascript',
-					  -src => '../js/sorttable.js'
-					}
-				]
-			) ;
+print $cgi->start_html(
+    -title=>$doc_title,
+    -style=>'../css/cddb.css',
+    -script=>[
+         { -type => 'text/javascript',
+           -src => '../js/sorttable.js'
+         }
+    ]) ;
 
 
 print '<div id="program_description">' ;
@@ -116,44 +114,46 @@ if (!@names) {	#no query, just input form
 } else {			#process query
     print_query_form() ;
 
-    my ($tag, $querystring, $query_albums) ;
-    
-    my @queries = create_queries() ;
-    my $grep_cmd_query = pop @queries ;
-    
-    ($tag, $querystring) = split "\t", $grep_cmd_query ;
-    
-    my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
-    my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
+my ($tag, $querystring, $query_albums) ;
 
-    print '<div id="found_tracks">' ;
-    print $cgi->h2('Tracks') ;
-    print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
-    
-    my @found_grep = grep_results($grep_cmd_tracks) ;
-		
-    push @found_grep, $tag ;
-    my @found_tracks = grep_output_to_trackinfo(@found_grep) ;
-    
-    foreach my $query (@queries) {
-        @found_tracks = apply_query(\@found_tracks, $query) ;
-    }
-    
-    my @sorted_tracks ;
-    my $sortref = sort_func($tag) ;
-    @sorted_tracks = sort $sortref @found_tracks ;
-    
-    print_result_tracks(@sorted_tracks) ;
-    print '</div>' ;
-    
-    my @found_albums ;
-    @found_albums = grep_results($grep_cmd_albums) ;
-    
-    print '<div id="found_albums">' ;
-    print $cgi->h2('Albums') ;
-    print $cgi->code($grep_cmd_albums) if $g_debug ;    
-    print_result_albums(@found_albums) ;
-    print '</div>' ;
+my @queries = create_queries() ;
+my $grep_cmd_query = pop @queries ;
+
+($tag, $querystring) = split "\t", $grep_cmd_query ;
+
+my $grep_cmd_tracks = grep_command_line($tag, $querystring, 0) ;
+my $grep_cmd_albums = grep_command_line($tag, $querystring, 1) ;
+
+print '<div id="found_tracks">' ;
+print $cgi->h2('Tracks') ;
+print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
+
+my @found_grep = grep_results($grep_cmd_tracks) ;
+
+push @found_grep, $tag ;
+my @found_tracks = grep_output_to_trackinfo(@found_grep) ;
+
+foreach my $query (@queries) {
+    @found_tracks = apply_query(\@found_tracks, $query) ;
+}
+
+my @sorted_tracks ;
+my $sortref = sort_func($tag) ;
+@sorted_tracks = sort $sortref @found_tracks ;
+
+print_result_tracks(@sorted_tracks) ;
+print '</div>' ;
+
+my @found_albums ;
+@found_albums = grep_results($grep_cmd_albums) ;
+
+@found_albums = grep (!/\/user\//, @found_albums) ;
+
+print '<div id="found_albums">' ;
+print $cgi->h2('Albums') ;
+print $cgi->code($grep_cmd_albums) if $g_debug ;    
+print_result_albums(@found_albums) ;
+print '</div>' ;
 }
 
 print $cgi->end_html ;
@@ -357,8 +357,13 @@ sub grep_output_to_trackinfo
 
 		#parse the grep output
 		#$cddb_path, $title, $artist, $composer, $album, $track_num
+    my $cddb_path = (split(':', $grepline))[0] ;
+
+    #the "user" directory is created by libcddb for genres that do not fit into their predifined list of music genres.
+    #I use it only to alias to other genres, so skip those softlinks
+    if($cddb_path =~ m|/user/|) { next ; } 
 		my @info = get_track_info($tag, $grepline) ;
-		
+
 		push @tracks, \@info ;
 	}
 

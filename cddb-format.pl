@@ -137,8 +137,6 @@ else {
     print "# $infile\n" ; 
 }
 
-CddbMp3::loadrc() ;
-
 print_artist_and_title(\%cddb_info);
 print_tracks(\%cddb_info);
 print_cover_image(\%cddb_info) if $opt_html ;
@@ -257,33 +255,36 @@ sub print_tracks()
     }
     
     my $idx ;
-    my ($track_fmt, $artist_html, $title_html, $mp3_html) ;
+    my ($track_fmt, $title_html, $mp3_html) ;
     my $track_num = 1 ;
     
     for($idx = 0 ; $idx <= $cddb{num_tracks} ; $idx++) {
-        $artist_html = '' ;
-        my ($title, $artist, $composer) = ($track_titles[$idx], $track_artists[$idx], $track_extras[$idx]) ;
-        
-        $composer =~ tr/\(\)//d ;
+        my ($title, $artist, $composer) = 
+            ($track_titles[$idx], $track_artists[$idx], $track_extras[$idx]) ;
 
-        if ($artist ne '') {
-            my $links = TokenizeNames::tokenize_anchors_artist($artist) ;
-            $artist_html = " - $links" ;
-            $artist = "\t$artist" ; 	#for console mode
-        } 
-        
-        my $composer_html = TokenizeNames::tokenize_anchors_composer($composer) ;
-        
-        if ($composer_html ne '') {
-            $composer_html = " <i><small>($composer_html)</small></i>" ;
-        }
+        $composer =~ tr/\(\)//d ;        
         
         if($opt_html) {
-            $title_html = '<b>' . TokenizeNames::tokenize_anchors_title($title) . '</b>' ;
+            my $title_html = '<b>' . TokenizeNames::tokenize_anchors_title($title) . '</b>' ;
+            my $artist_html = TokenizeNames::tokenize_anchors_artist($artist) ;
+            my $composer_html = TokenizeNames::tokenize_anchors_composer($composer) ;
+
+            if($title_html ne '') { 
+                $title_html = "<b>$title_html</b>"
+            } ;
+            if($artist_html ne '') {
+                $artist_html = " - $artist_html" ;
+            }
+            if($composer_html ne '') {
+                $composer_html = " <i><small>($composer_html)</small></i>" ;   
+            }            
 
             my $tracknum_str_1 = sprintf("%02d", $idx + 1) ;
 
-            my $mp3_path = CddbMp3::find_mp3_file($cddb{artist}, $cddb{title}, $tracknum_str_1, $title) ;
+            my $mp3_path = CddbMp3::find_mp3_file($cddb{artist}, 
+                                                  $cddb{title}, 
+                                                  $tracknum_str_1, 
+                                                  $title) ;
             
             my $mp3_alink = '' ;
 
@@ -294,10 +295,10 @@ sub print_tracks()
             }
             
             print '<li>' ;
-            print "$title_html$artist_html$composer_html ${mp3_alink}" ;
+            print "${title_html}${artist_html}${composer_html} ${mp3_alink}" ;
             print '</li>'  ;
         } else {
-            print "$track_num $title$artist" ;
+            print "$track_num $title\t$artist" ;
         }
         
         $track_num++ ;
@@ -372,11 +373,36 @@ sub print_collection_status {
     $sth->execute($cddb{discid}) ;
 
     my $rowref ;
+    my $is_owned = 0 ;
+
+    my $discid ;
+    
     while($rowref = $sth->fetchrow_hashref()) {
         my %row = %$rowref ;
-        print("You own the disc $row{CD_ID}\n") ;
+        $discid = $row{CD_ID} ;
+        $is_owned = 1 ;
     }
 
+    if($is_owned) {
+        print("You own the disc $discid.") ;
+    } else {
+        print '<form method="POST" action="cddb-collection.pl">' ;
+
+        print $cgi->input(
+            {
+                type => "hidden",
+                name => 'cddb',
+                value=>${genre_and_cddb}
+            }) ;
+        print $cgi->input(
+            {
+                type=>"submit",
+                name=>"own_disc",
+                value=>"I own this disc"
+            }) ;
+        print '</form>' ; 
+    }
+    
     print '</div>' ;
 }
 
@@ -391,7 +417,10 @@ sub print_debug_window {
     
     print '<div class="Debug"><code>' ;
 
-    printbr %ENV ;
+    while (my($key, $val) = each(%ENV)) {
+        #printbr("$key => $val") ;
+    }
+#    printbr %ENV ;
     
     printbr ("cddb-format.pl -t $infile") ;
     printbr ("kate $infile &") ;
@@ -427,9 +456,8 @@ Convert to utf-8 from <select name=from_encoding>
 </form>
 
 <ul>
-	<li><a href="cddb-tartist.pl?cddb_path=$infile">Convert to TARTIST format</a>
-	<li><a href="cddb-collection.pl?cddb=$genre_and_cddb&artist=$artist&title=$title">Add to collection</a>
-	<li><a href="cddb-query.pl">Return to Query</a>
+	<li><a href="cddb-tartist.pl?cddb_path=$infile">Convert to TARTIST format</a></li>
+	<li><a href="cddb-query.pl">Return to Query</a></li>
 </ul>
 
 </body>

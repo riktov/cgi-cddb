@@ -8,28 +8,15 @@ require Exporter ;
 
 @EXPORT = qw(
 find_mp3_file
-loadrc
 ) ;
 
 use strict ;
 
 my @mp3_dirs ;
 
-sub loadrc {
-#    print "CddbMp3::loadrc()" ;
-    if (open RCFILE, '.cddbrc') {
-        my @rc = <RCFILE> ;
-        
-        foreach my $line (@rc) {
-            if ($line =~ /mp3_dir_paths *=(.+)/) {
-                @mp3_dirs=split(':', $1) ;
-            }
-        }
-        close RCFILE ;
-    } else {
-        die "Cannot open rc file\n" ;
-    }
-}
+my $cfg = new Config::Simple('.cddbrc') ;
+
+@mp3_dirs = split(':', $cfg->param('mp3_dir_paths')) ;
 
 #return the first valid path for a mp3 file in the mp3 directories
 sub find_mp3_file {
@@ -52,7 +39,7 @@ sub find_mp3_file {
     foreach my $dir (@mp3_dirs) {
         $mp3_path = "${dir}/$artist/$album/$tracknum_1based ${title}.mp3" ;
 
-        print "$mp3_path<br/>" ;
+#        print "$mp3_path<br/>" ;
         
         if (-f $mp3_path) { 
             return $mp3_path ;
