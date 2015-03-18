@@ -42,21 +42,21 @@ my $num_images = $image->Read($image_in)  ; #return value from Read() and Write(
 
 print STDERR "The number of images read from $image_in is: ${num_images}\n";
 
-#TODO this doesn't need to be a hash, it can just be an array of arrays
-my %image_specs_of =
+# The specs should be in descending order of size, as the Resize is applied progressively
+my @image_specs_at =
 (
-    main => ['', '', 300],
-    thumbs => ['thumbs/', '_th', 32],
-    favicon => ['favicon/', '_favicon', 16]
+    ['', '', 300],
+    ['thumbs/', '_th', 32],
+    ['favicon/', '_favicon', 16]
 ) ;
 
-while(my($spec_label, $specs_ref) = each %image_specs_of) {
+foreach my $specs_ref (@image_specs_at) {
     my @specs = @$specs_ref ;
 
     my ($subdir, $suffix, $width) = @specs ;
     
     my $image_out = $cddb_image_dir . $subdir . $discid . $suffix . '.png' ;
-    print STDERR "The $spec_label file is: $image_out\n";
+    print STDERR "The file for the subdir [$subdir] is: $image_out\n";
 
     my $dimensions = "${width}x${width}^" ;
     
