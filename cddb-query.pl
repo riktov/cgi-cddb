@@ -582,7 +582,7 @@ sub get_disc()
 	{
 	my ($tag, $cddb_path) = @_ ;
 	
-	my $disc = `grep $tag "$cddb_path"` ;
+	my $disc = `grep --text $tag "$cddb_path"` ;
 	
 	chomp $disc ;
 	$disc =~ s/$tag=// ;

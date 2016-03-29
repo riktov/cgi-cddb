@@ -267,18 +267,19 @@ sub print_tracks()
         $composer =~ tr/\(\)//d ;        
         
         if($opt_html) {
-            my $title_html = '<b>' . tokenize_anchors_title($title) . '</b>' ;
+            my $title_html = tokenize_anchors_title($title)  ;
             my $artist_html = tokenize_anchors_artist($artist) ;
             my $composer_html = tokenize_anchors_composer($composer) ;
 
             if($title_html ne '') { 
-                $title_html = "<b>$title_html</b>"
+                $title_html = "<strong>$title_html</strong>"
             } ;
+	    
             if($artist_html ne '') {
                 $artist_html = " - $artist_html" ;
             }
             if($composer_html ne '') {
-                $composer_html = " <i><small>($composer_html)</small></i>" ;   
+                $composer_html = " <em><small>($composer_html)</small></em>" ;   
             }            
 
             my $tracknum_str_1 = sprintf("%02d", $idx + 1) ;
