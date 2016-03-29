@@ -33,6 +33,7 @@ if (!@disc) {
     exit() ;
 }
 
+
 my @artist_lines = grep /TARTIST\d+=.+/,  @all_lines ;
 my @title_lines  = grep /TTITLE\d+=.+/, @all_lines ;
 

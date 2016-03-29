@@ -41,7 +41,7 @@ my $IDX_ARTIST   = 1 ;
 my $IDX_COMPOSER = 2 ;
 
 #globals
-my $cddb_dir = '/home/r/riktov/.cddb/' ;
+my $cddb_dir = '/your/cddb/directory/' ;
 my $image_dir = "../cddb_images/" ;
 my $image_thumbs_dir = "../cddb_images/thumbs/" ;
 my $image_favicon_dir = "../cddb_images/favicon/" ;
@@ -130,8 +130,9 @@ print "<p><code>$grep_cmd_tracks</code><p>" if $g_debug ;
 
 my @found_grep = grep_results($grep_cmd_tracks) ;
 
-push @found_grep, $tag ;
-my @found_tracks = grep_output_to_trackinfo(@found_grep) ;
+#push @found_grep, $tag ;
+
+my @found_tracks = grep_output_to_trackinfo(\@found_grep, $tag) ;
 
 foreach my $query (@queries) {
     @found_tracks = apply_query(\@found_tracks, $query) ;
@@ -146,6 +147,8 @@ print '</div>' ;
 
 my @found_albums ;
 @found_albums = grep_results($grep_cmd_albums) ;
+
+my $ignore_category = 'user' ;
 
 @found_albums = grep (!/\/user\//, @found_albums) ;
 
@@ -169,7 +172,7 @@ sub print_query_form {
     $artist    = '' if !$artist ;
     
 print<<END_HERE
-  <div id="query_form">
+    <div id="query_form">
     <form method=GET class="CDDBQuery">
     <div>
   Title: <input name='title' value="$title">
@@ -193,7 +196,8 @@ sub create_queries {
 
 	my @queries = () ;
 
-	# Order is important here. Since an artist query may return albums but no tracks, further queries on composer or title will not work,
+	# Order is important here. Since an artist query may return albums but no tracks, 
+	# further queries on composer or title will not work,
 	# even though we want to query on composer/title for all the tracks in that album.
 	# So we always place artist at the bottom of the stack.
 	# Title will probably return fewer hits than composer, so we place that at the top. 
@@ -260,6 +264,7 @@ sub grep_command_line {
     my $locale_spec = qq(LANG="pt_BR.UTF-8") ;
     
     return qq(export $locale_spec ; egrep -i -d recurse -e $query_pattern $cddb_dir$cddb_spec) ;
+    #return qq(egrep -i -d recurse -e $query_pattern $cddb_dir$cddb_spec) ;
 }
 
 
@@ -291,6 +296,9 @@ sub get_track_info {
 
 	my ($tag, $grepline) = @_ ;
 
+	#print "$tag :: $grepline<br>" ;
+	#return ;
+	
 	#parse a line of grep output with found TTITLE/TARTIST/EXTT
 	my($cddb_path, $track_num, $query_match) = split /:$tag|=/, $grepline ;
 
@@ -344,30 +352,35 @@ sub sort_by_composer { @{$a}[$IDX_COMPOSER] cmp @{$b}[$IDX_COMPOSER]; }
 sub grep_output_to_trackinfo
 #convert array of string output from grep to a list of track info records 
 {
-	my $tag = pop @_ ;
-	my @foundgrep = @_ ;
+#    my $tag = pop @_ ;
+#    my @foundgrep = @_ ;
 
-	@foundgrep or return ;
+    my($foundgrep_ref, $tag) = @_ ;
 
-	my @tracks = () ;
+    my @foundgrep = @$foundgrep_ref ;
+    
+    @foundgrep or return ;
+    
+    my @tracks = () ;
+    
+    foreach my $grepline (@foundgrep) {
+	chomp $grepline ;
+	#		$grepline =~ s/^$cddb_dir// ;
 	
-	foreach my $grepline (@foundgrep) {
-		chomp $grepline ;
-#		$grepline =~ s/^$cddb_dir// ;
-
-		#parse the grep output
-		#$cddb_path, $title, $artist, $composer, $album, $track_num
-    my $cddb_path = (split(':', $grepline))[0] ;
-
-    #the "user" directory is created by libcddb for genres that do not fit into their predifined list of music genres.
-    #I use it only to alias to other genres, so skip those softlinks
-    if($cddb_path =~ m|/user/|) { next ; } 
-		my @info = get_track_info($tag, $grepline) ;
-
-		push @tracks, \@info ;
-	}
-
-	return @tracks ;
+	#parse the grep output
+	#$cddb_path, $title, $artist, $composer, $album, $track_num
+	my $cddb_path = (split(':', $grepline))[0] ;
+	
+	#the "user" directory is created by libcddb for genres that do not fit into their predifined 
+	#list of music genres.
+	#I use it only to alias to other genres, so skip those softlinks
+	if($cddb_path =~ m|/user/|) { next ; } 
+	my @info = get_track_info($tag, $grepline) ;
+	
+	push @tracks, \@info ;
+    }
+    
+    return @tracks ;
 }
 
 sub sort_func
@@ -442,8 +455,9 @@ sub print_result_tracks
         my $title_html    = 
             '<b>' . 
             tokenize_anchors_title($title) .
-            $mp3_anchor . 
-            '</b>' ;
+            $mp3_anchor
+	    #
+            . '</b>' ;
 
         my $composer_html = '<i>'.tokenize_anchors_composer($composer).'</i>' ;
         my $artist_html   = tokenize_anchors_artist($artist) ;
@@ -544,23 +558,25 @@ sub print_result_albums()
     print "</ul>"; 
 }
 
-sub get_track_line_value()
-	{
-	my ($tag, $cddb_path, $track_num) = @_ ;
+sub get_track_line_value() {
+    my ($tag, $cddb_path, $track_num) = @_ ;
+    
+    my $pat = "$tag$track_num=" ;
 
-	my $pat = "$tag$track_num=" ;
 
-	# some EXTTs are multi-line
-	my $title = join('', `grep $pat "$cddb_path"`) ;
-	
-#	print $title ;	
-	chomp $title ;
-	$title =~ s/\n//g ;
-	$title =~ s/\\n/\n/g ;
-	$title =~ s/$pat//g ;
-	
-	return $title ;
-	}
+    # some EXTTs are multi-line
+    my $title = join('', `grep --text $pat "$cddb_path"`) ;
+    #$title = "PAT: $pat" ;
+#    $title = "grep $pat $cddb_path" ;
+    
+    #	print $title ;	
+    chomp $title ;
+    $title =~ s/\n//g ;
+    $title =~ s/\\n/\n/g ;
+    $title =~ s/$pat//g ;
+    
+    return $title ;
+}
 
 sub get_disc()
 	{

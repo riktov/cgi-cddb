@@ -31,15 +31,16 @@ sub find_mp3_file {
     $artist = as_legal_filepath($artist) ;
     $title  = as_legal_filepath($title) ;
 
-#    print ("find_mp3_file()") ;
-#    print @mp3_dirs ;
+    #print ("find_mp3_file()") ;
+    #print @mp3_dirs ;
 
     my $mp3_path = '';
     
     foreach my $dir (@mp3_dirs) {
-        $mp3_path = "${dir}/$artist/$album/$tracknum_1based ${title}.mp3" ;
+	#print "Looking for mp3 in $dir..." ;
+        $mp3_path = "${dir}/$artist/$album/$tracknum_1based - ${title}.mp3" ;
 
-#        print "$mp3_path<br/>" ;
+        #print "Looking for $mp3_path<br/>" ;
         
         if (-f $mp3_path) { 
             return $mp3_path ;

@@ -16,6 +16,7 @@ use File::Basename ;
 use Getopt::Std ;
 use CGI '-utf8';
 use DBI ;
+use CGI::Carp qw(fatalsToBrowser) ;
 
 use Cddb ;
 use TokenizeNames ;
@@ -58,6 +59,7 @@ my $cfg = new Config::Simple('.cddbrc') ;
 $cddb_dir = $cfg->param('cddb_dir') ;
 $image_dir = $cfg->param('image_dir') ;
 
+$cddb_dir =~ s|/$|| ;
 # command-line options
 getopts('aht') ;
 if ($opt_h)	{ $opt_html = 1 ; }	#HTML output
@@ -291,6 +293,7 @@ sub print_tracks()
             if ( -f $mp3_path) { 
                 $mp3_alink = '[<a href="' . $mp3_path . '">mp3</a>]' ;
             } else {
+		#printf("Can't find mp3 $mp3_path<br/>") ;
                 #$mp3_alink = $mp3_path ;
             }
             
@@ -314,8 +317,9 @@ sub print_tracks()
 sub cover_source_image_path {
     my($artist, $album) = @_ ;
 
-    my $path = "${artist}-${album}.jpg" ;
-    $path =~ tr|[ '\&+;/#]|_| ;#replace illegal path characters
+    #    my $path = "${artist}-${album}.jpg" ;
+    my $path = "${artist}-${album}.png" ;
+    $path =~ tr|[ '\&+;/#*:]|_| ;#replace illegal path characters
 
     #use utf8?
     #$path =~ tr/[ô]/[o]/ ;#replace extended characters, not working with multiple characters
@@ -341,14 +345,26 @@ sub print_cover_image() {
         my $cover_source_image_path = cover_source_image_path($artist, $title) ;
         
         my $cover_convert_link = '' ;
+
+	my $cover_source_image_path_jpg = $cover_source_image_path ;
+	
+	$cover_source_image_path_jpg =~ s/png$/jpg/ ;
 	
         if(-f $cover_source_image_path) {
             print $imgfile . "<br/>" ;
             $cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path}&cddb=${infile}>Convert Cover Image</a>" ;
             print $cover_convert_link ;
+	} elsif (-f $cover_source_image_path_jpg) {
+            print $imgfile . "<br/>" ;
+            $cover_convert_link = "<a href=cddb-convert-image.pl?source=${cover_source_image_path_jpg}&cddb=${infile}>Convert Cover Image</a>" ;
+            print $cover_convert_link ;
+	    
         } else {
             print '<input type="file">Input File</input><br/>' ;
-            print "Copy the image file to ${cover_source_image_path}" ;
+            print "Copy the image file to:<br/>" ;
+	    $cover_source_image_path =~ s/.png// ;
+	    $cover_source_image_path =~ s|.+album_covers/|| ;
+	    print ${cover_source_image_path} ;
         }
     }
     
