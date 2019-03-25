@@ -9,14 +9,14 @@
 ### Language
 
 - [x] JavaScript
-- [*] C/C++
-- [*] Java
+- [x] C/C++
+- [x] Java
 - [ ] Ruby
-- [*] Python
-- [*] PHP
+- [x] Python
+- [x] PHP
 - [ ] Scala
 - [ ] Clojure
-- [*] Swift
+- [x] Swift
 
 ### Among the projects you have worked on, which one are you most proud of? What were your tasks in the project, and how did you use your knowledge/skills to come up with the solution?
 
