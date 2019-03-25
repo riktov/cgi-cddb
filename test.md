@@ -8,7 +8,7 @@
 
 ### Language
 
-- [*] JavaScript
+- [x] JavaScript
 - [*] C/C++
 - [*] Java
 - [ ] Ruby
@@ -20,6 +20,5 @@
 
 ### Among the projects you have worked on, which one are you most proud of? What were your tasks in the project, and how did you use your knowledge/skills to come up with the solution?
 
-<Your response>
-
+Once upon a time
 
